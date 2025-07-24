@@ -1,0 +1,99 @@
+<nav class="bg-gray-800 shadow-lg fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+
+            <!-- Logo/Nome do Sistema -->
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <h1 class="text-white text-xl font-bold">
+                        <i class="fas fa-wallet mr-2 text-blue-400"></i>
+                        FinanControl
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Menu Desktop -->
+            <div class="hidden md:block">
+                <div class="ml-10 flex items-baseline space-x-4">
+                    <a *ngFor="let item of menuItems" [routerLink]="item.route"
+                        routerLinkActive="bg-blue-600 text-white" [routerLinkActiveOptions]="{exact: false}"
+                        class="text-gray-300 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center"
+                        (click)="closeMenu()">
+                        <i [class]="item.icon + ' mr-2'"></i>
+                        {{ item.label }}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Avatar/Usuário -->
+            <div class="hidden md:block">
+                <div class="ml-4 flex items-center md:ml-6">
+                    <button
+                        class="bg-gray-800 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                        <span class="sr-only">Ver notificações</span>
+                        <i class="fas fa-bell h-6 w-6"></i>
+                    </button>
+
+                    <!-- Avatar dropdown -->
+                    <div class="ml-3 relative">
+                        <div>
+                            <button
+                                class="max-w-xs bg-gray-800 rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+                                id="user-menu-button">
+                                <span class="sr-only">Abrir menu do usuário</span>
+                                <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <i class="fas fa-user text-white text-sm"></i>
+                                </div>
+                                <span class="ml-2 text-gray-300 text-sm font-medium">{{ userName }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão Mobile Menu -->
+            <div class="md:hidden">
+                <button (click)="toggleMenu()"
+                    class="bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                    <span class="sr-only">Abrir menu principal</span>
+                    <i [class]="isMenuOpen ? 'fas fa-times' : 'fas fa-bars'" class="h-6 w-6"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Mobile -->
+    <div [class]="isMenuOpen ? 'block' : 'hidden'" class="md:hidden">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-700">
+            <a *ngFor="let item of menuItems" [routerLink]="item.route" routerLinkActive="bg-blue-600 text-white"
+                [routerLinkActiveOptions]="{exact: false}"
+                class="text-gray-300 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                (click)="closeMenu()">
+                <i [class]="item.icon + ' mr-2'"></i>
+                {{ item.label }}
+            </a>
+        </div>
+
+        <!-- Usuário Mobile -->
+        <div class="pt-4 pb-3 border-t border-gray-600">
+            <div class="flex items-center px-5">
+                <div class="flex-shrink-0">
+                    <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <div class="text-base font-medium leading-none text-white">{{ userName }}</div>
+                    <div class="text-sm font-medium leading-none text-gray-400 mt-1">{{ userEmail }}</div>
+                </div>
+                <button
+                    class="ml-auto bg-gray-800 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                    <i class="fas fa-bell h-6 w-6"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Espaçamento para compensar navbar fixa -->
+<div class="h-16"></div>

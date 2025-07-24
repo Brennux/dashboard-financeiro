@@ -1,0 +1,169 @@
+// Estilos personalizados para a página de categorias
+
+.categoria-card {
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.categoria-icone {
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: scale(1.1);
+    }
+}
+
+.modal-backdrop {
+    backdrop-filter: blur(5px);
+}
+
+.color-picker-button {
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.3);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    &:hover::before {
+        opacity: 1;
+    }
+}
+
+.icon-picker-grid {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E0 #F7FAFC;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #F7FAFC;
+        border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #CBD5E0;
+        border-radius: 3px;
+
+        &:hover {
+            background: #A0AEC0;
+        }
+    }
+}
+
+.chart-container {
+    position: relative;
+    height: 320px;
+
+    canvas {
+        max-height: 100% !important;
+    }
+}
+
+.toggle-switch {
+    .toggle-bg {
+        transition: background-color 0.3s ease;
+    }
+
+    .toggle-dot {
+        transition: transform 0.3s ease;
+    }
+}
+
+// Animações para entrada dos elementos
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+// Estilo para categorias inativas
+.categoria-inativa {
+    opacity: 0.6;
+
+    .categoria-card {
+        border: 2px dashed #E2E8F0;
+        background: repeating-linear-gradient(45deg,
+                transparent,
+                transparent 10px,
+                rgba(226, 232, 240, 0.1) 10px,
+                rgba(226, 232, 240, 0.1) 20px);
+    }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+    .chart-container {
+        height: 250px;
+    }
+
+    .categoria-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+// Custom scrollbar para a lista de categorias
+.categorias-list {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E0 transparent;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #CBD5E0;
+        border-radius: 3px;
+
+        &:hover {
+            background: #A0AEC0;
+        }
+    }
+}
+
+// Efeito de pulso para novos elementos
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+.new-category {
+    animation: pulse 2s infinite;
+}

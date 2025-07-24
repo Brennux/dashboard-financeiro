@@ -1,0 +1,298 @@
+<div class="min-h-screen bg-gray-50 p-4 md:p-6">
+    <!-- Cabeçalho -->
+    <header class="mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Gerenciar Categorias</h1>
+                <p class="text-gray-600 mt-2">Organize suas transações em categorias personalizadas</p>
+            </div>
+            <button (click)="abrirModal()"
+                class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm">
+                <i class="fas fa-plus mr-2"></i>
+                Nova Categoria
+            </button>
+        </div>
+    </header>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100">
+                    <i class="fas fa-tags text-blue-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total de Categorias</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ categorias.length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100">
+                    <i class="fas fa-arrow-up text-green-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Receitas</p>
+                    <p class="text-2xl font-bold text-green-600">{{ formatarValor(getTotalReceitas()) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-red-100">
+                    <i class="fas fa-arrow-down text-red-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Despesas</p>
+                    <p class="text-2xl font-bold text-red-600">{{ formatarValor(getTotalDespesas()) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100">
+                    <i class="fas fa-chart-pie text-purple-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Ativas</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ getCategoriasAtivas() }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex flex-col md:flex-row gap-4">
+                <!-- Busca -->
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input [(ngModel)]="filtroBusca" (ngModelChange)="onFiltroChange()" type="text"
+                        placeholder="Buscar categorias..."
+                        class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Filtro por Tipo -->
+                <select [(ngModel)]="filtroTipo" (ngModelChange)="onFiltroChange()"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="todos">Todos os tipos</option>
+                    <option value="receita">Receitas</option>
+                    <option value="despesa">Despesas</option>
+                </select>
+            </div>
+
+            <!-- Toggle para mostrar inativos -->
+            <label class="flex items-center cursor-pointer">
+                <input type="checkbox" [(ngModel)]="mostrarInativos" (ngModelChange)="onFiltroChange()" class="sr-only">
+                <div class="relative">
+                    <div [ngClass]="mostrarInativos ? 'bg-blue-600' : 'bg-gray-200'"
+                        class="block w-14 h-8 rounded-full transition-colors duration-200"></div>
+                    <div [ngClass]="mostrarInativos ? 'translate-x-6' : 'translate-x-1'"
+                        class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-200">
+                    </div>
+                </div>
+                <span class="ml-3 text-sm font-medium text-gray-700">Mostrar inativas</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Gráfico e Lista -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Gráfico de Pizza -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Distribuição por Categoria</h3>
+                <div class="h-80">
+                    <canvas baseChart [data]="pieChartData" [type]="pieChartType" [options]="pieChartOptions">
+                    </canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Categorias -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Categorias ({{ categoriasFiltradas.length }})
+                    </h3>
+                </div>
+
+                <div class="divide-y divide-gray-200">
+                    <div *ngFor="let categoria of categoriasFiltradas"
+                        class="p-6 hover:bg-gray-50 transition-colors duration-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <!-- Ícone da categoria -->
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                                    [style.background-color]="categoria.cor + '20'"
+                                    [style.border]="'2px solid ' + categoria.cor">
+                                    <i [ngClass]="categoria.icone" [style.color]="categoria.cor" class="text-lg"></i>
+                                </div>
+
+                                <!-- Informações da categoria -->
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2">
+                                        <h4 class="text-lg font-medium text-gray-900">{{ categoria.nome }}</h4>
+                                        <span
+                                            [ngClass]="categoria.tipo === 'receita' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                                            class="px-2 py-1 text-xs font-medium rounded-full">
+                                            {{ categoria.tipo === 'receita' ? 'Receita' : 'Despesa' }}
+                                        </span>
+                                        <span *ngIf="!categoria.ativa"
+                                            class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                            Inativa
+                                        </span>
+                                    </div>
+                                    <div class="mt-1 flex items-center space-x-4 text-sm text-gray-600">
+                                        <span>{{ categoria.totalTransacoes }} transações</span>
+                                        <span class="font-medium"
+                                            [ngClass]="categoria.tipo === 'receita' ? 'text-green-600' : 'text-red-600'">
+                                            {{ formatarValor(categoria.valorTotal) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ações -->
+                            <div class="flex items-center space-x-2">
+                                <button (click)="abrirModal(categoria)"
+                                    class="p-2 text-gray-400 hover:text-blue-600 transition-colors duration-200"
+                                    title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+
+                                <button (click)="alternarStatusCategoria(categoria)"
+                                    [class]="categoria.ativa ? 'text-gray-400 hover:text-yellow-600' : 'text-gray-400 hover:text-green-600'"
+                                    class="p-2 transition-colors duration-200"
+                                    [title]="categoria.ativa ? 'Desativar' : 'Ativar'">
+                                    <i [class]="categoria.ativa ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                                </button>
+
+                                <button (click)="excluirCategoria(categoria)"
+                                    class="p-2 text-gray-400 hover:text-red-600 transition-colors duration-200"
+                                    title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado vazio -->
+                    <div *ngIf="categoriasFiltradas.length === 0" class="p-12 text-center">
+                        <i class="fas fa-search text-gray-300 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma categoria encontrada</h3>
+                        <p class="text-gray-600">Tente ajustar os filtros ou criar uma nova categoria.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Criar/Editar Categoria -->
+<div *ngIf="mostrarModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    {{ modoEdicao ? 'Editar Categoria' : 'Nova Categoria' }}
+                </h3>
+                <button (click)="fecharModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <form (ngSubmit)="salvarCategoria()" class="p-6 space-y-6">
+            <!-- Nome -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nome</label>
+                <input [(ngModel)]="novaCategoria.nome" name="nome" type="text" required
+                    placeholder="Ex: Alimentação, Transporte..."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Tipo -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors duration-200"
+                        [ngClass]="novaCategoria.tipo === 'despesa' ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:bg-gray-50'">
+                        <input type="radio" [(ngModel)]="novaCategoria.tipo" name="tipo" value="despesa"
+                            class="sr-only">
+                        <i class="fas fa-arrow-down text-red-600 mr-2"></i>
+                        <span class="font-medium">Despesa</span>
+                    </label>
+
+                    <label class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors duration-200"
+                        [ngClass]="novaCategoria.tipo === 'receita' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:bg-gray-50'">
+                        <input type="radio" [(ngModel)]="novaCategoria.tipo" name="tipo" value="receita"
+                            class="sr-only">
+                        <i class="fas fa-arrow-up text-green-600 mr-2"></i>
+                        <span class="font-medium">Receita</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Ícone -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Ícone</label>
+                <div class="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                    <button *ngFor="let icone of iconesDisponiveis" type="button" (click)="novaCategoria.icone = icone"
+                        [ngClass]="novaCategoria.icone === icone ? 'bg-blue-100 border-blue-500' : 'border-gray-300 hover:bg-gray-50'"
+                        class="p-2 border rounded-lg transition-colors duration-200">
+                        <i [ngClass]="icone" class="text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cor -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Cor</label>
+                <div class="grid grid-cols-5 gap-2">
+                    <button *ngFor="let cor of coresDisponiveis" type="button" (click)="novaCategoria.cor = cor"
+                        [style.background-color]="cor"
+                        [ngClass]="novaCategoria.cor === cor ? 'ring-2 ring-offset-2 ring-blue-500' : ''"
+                        class="w-10 h-10 rounded-lg transition-all duration-200 hover:scale-110">
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Preview</label>
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                        [style.background-color]="novaCategoria.cor + '20'"
+                        [style.border]="'2px solid ' + novaCategoria.cor">
+                        <i [ngClass]="novaCategoria.icone" [style.color]="novaCategoria.cor"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium text-gray-900">{{ novaCategoria.nome || 'Nome da categoria' }}</div>
+                        <div class="text-sm text-gray-600">{{ novaCategoria.tipo === 'receita' ? 'Receita' : 'Despesa'
+                            }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex space-x-3 pt-4">
+                <button type="button" (click)="fecharModal()"
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                    Cancelar
+                </button>
+                <button type="submit" [disabled]="!novaCategoria.nome.trim()"
+                    class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200">
+                    {{ modoEdicao ? 'Atualizar' : 'Criar' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

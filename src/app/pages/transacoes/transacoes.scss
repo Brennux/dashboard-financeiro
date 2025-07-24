@@ -1,0 +1,76 @@
+/* Estilos para o modal */
+.modal-overlay {
+    backdrop-filter: blur(2px);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Estilos para inputs focus */
+input:focus,
+select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Estilo para radio buttons */
+input[type="radio"]:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+/* Hover effect para linhas da tabela */
+.table-row:hover {
+    background-color: #f9fafb;
+    transition: background-color 0.2s ease;
+}
+
+/* Estilos para botões de ação */
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.action-button:hover {
+    transform: translateY(-1px);
+}
+
+/* Modal de confirmação específico */
+.confirmation-modal {
+    backdrop-filter: blur(4px);
+}
+
+.danger-button {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.danger-button:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}

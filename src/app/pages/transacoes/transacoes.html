@@ -1,0 +1,360 @@
+<div class="min-h-screen bg-gray-50 p-6">
+    <div class="max-w-7xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Transações</h1>
+            <p class="text-gray-600 mt-2">Gerencie suas transações financeiras</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-900">Últimas Transações</h2>
+                <button (click)="abrirModal()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i>
+                    Nova Transação
+                </button>
+            </div>
+
+            <!-- Seção de Filtros -->
+            <div class="mb-6">
+                <!-- Campo de Busca -->
+                <div class="mb-4">
+                    <div class="relative max-w-md busca-container">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" [(ngModel)]="textoBusca" (input)="onBuscaInput()" (focus)="onBuscaFocus()"
+                            placeholder="Buscar por descrição ou categoria..."
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                        <div *ngIf="textoBusca" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <button (click)="limparBusca()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <!-- Sugestões de Busca -->
+                        <div *ngIf="mostrarSugestoes && sugestoesBusca.length > 0"
+                            class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-40 max-h-48 overflow-y-auto">
+                            <div class="p-2">
+                                <div class="text-xs text-gray-500 mb-2 px-2">Sugestões:</div>
+                                <button *ngFor="let sugestao of sugestoesBusca" (click)="aplicarSugestao(sugestao)"
+                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200 flex items-center">
+                                    <i class="fas fa-search text-gray-400 mr-2 text-xs"></i>
+                                    {{ sugestao }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <!-- Filtros -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Filtro por Mês com Calendário -->
+                        <div class="relative calendario-container">
+                            <button (click)="toggleCalendario()"
+                                class="flex items-center justify-between bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-w-[180px]">
+                                <span class="flex items-center">
+                                    <i class="fas fa-calendar-alt mr-2 text-blue-500"></i>
+                                    {{ textoMesSelecionado }}
+                                </span>
+                                <i class="fas fa-chevron-down text-gray-400 text-xs ml-2"
+                                    [class.rotate-180]="mostrarCalendario"></i>
+                            </button>
+
+                            <!-- Dropdown do Calendário -->
+                            <div *ngIf="mostrarCalendario" (click)="$event.stopPropagation()"
+                                class="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 min-w-[300px]">
+
+                                <!-- Header do Calendário -->
+                                <div class="flex items-center justify-between mb-4">
+                                    <button (click)="alterarAno(-1)"
+                                        class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                                        <i class="fas fa-chevron-left text-gray-600"></i>
+                                    </button>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ anoAtual }}</h3>
+                                    <button (click)="alterarAno(1)"
+                                        class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                                        <i class="fas fa-chevron-right text-gray-600"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Grid de Meses -->
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button *ngFor="let mes of nomesMeses; let i = index"
+                                        (click)="selecionarMes(i, anoAtual)"
+                                        [disabled]="!verificarMesComTransacoes(i, anoAtual)" [class]="'px-3 py-2 text-sm rounded-lg transition-colors ' + 
+                                                     (verificarMesSelecionado(i, anoAtual) ? 'bg-blue-500 text-white' : 
+                                                      verificarMesComTransacoes(i, anoAtual) ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 
+                                                      'bg-gray-50 text-gray-400 cursor-not-allowed')">
+                                        {{ mes }}
+                                    </button>
+                                </div>
+
+                                <!-- Botões de ação -->
+                                <div class="flex justify-between mt-4 pt-3 border-t border-gray-200">
+                                    <button (click)="mesSelecionado = ''; fecharCalendario()"
+                                        class="text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                                        Limpar filtro
+                                    </button>
+                                    <button (click)="fecharCalendario()"
+                                        class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                                        Fechar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filtro por Categoria -->
+                        <div class="relative">
+                            <select [(ngModel)]="categoriaSelecionada"
+                                class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                                <option value="">🏷️ Todas as categorias</option>
+                                <option *ngFor="let categoria of categorias" [value]="categoria">
+                                    {{ categoria }}
+                                </option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                            </div>
+                        </div>
+
+                        <!-- Filtro por Tipo -->
+                        <div class="relative">
+                            <select [(ngModel)]="tipoSelecionado"
+                                class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                                <option value="">💰 Todos os tipos</option>
+                                <option value="entrada">💚 Entradas</option>
+                                <option value="saida">❤️ Saídas</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                            </div>
+                        </div>
+
+                        <!-- Botão Limpar Filtros -->
+                        <button (click)="limparFiltros()"
+                            class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors duration-200">
+                            <i class="fas fa-times mr-2"></i>
+                            Limpar
+                        </button>
+                    </div>
+
+                    <!-- Contador de resultados -->
+                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+                        <i class="fas fa-list mr-2"></i>
+                        <span *ngIf="!textoBusca && !mesSelecionado && !categoriaSelecionada && !tipoSelecionado">
+                            {{ transacoes.length }} transações
+                        </span>
+                        <span *ngIf="textoBusca || mesSelecionado || categoriaSelecionada || tipoSelecionado">
+                            {{ transacoesFiltradas.length }} de {{ transacoes.length }}
+                            <span *ngIf="textoBusca" class="text-blue-600">(busca: "{{ textoBusca }}")</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Data</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Descrição</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Categoria</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Valor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr *ngFor="let transacao of transacoesFiltradas" class="hover:bg-gray-50 table-row">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ formatarData(transacao.data) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ transacao.descricao }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    {{ transacao.categoria }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <span [class]="transacao.valor > 0 ? 'text-green-600' : 'text-red-600'">
+                                    {{ formatarValor(transacao.valor) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button (click)="abrirModalEdicao(transacao)"
+                                    class="text-indigo-600 hover:text-indigo-900 mr-4 action-button">
+                                    <i class="fas fa-edit mr-1"></i>Editar
+                                </button>
+                                <button (click)="abrirModalConfirmacao(transacao)"
+                                    class="text-red-600 hover:text-red-900 action-button">
+                                    <i class="fas fa-trash mr-1"></i>Excluir
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Mensagem quando não há transações filtradas -->
+                        <tr *ngIf="transacoesFiltradas.length === 0">
+                            <td colspan="5" class="px-6 py-12 text-center">
+                                <div class="text-gray-500">
+                                    <i class="fas fa-search text-4xl mb-4"></i>
+                                    <h3 class="text-lg font-medium mb-2">Nenhuma transação encontrada</h3>
+                                    <p class="text-sm">
+                                        <span *ngIf="transacoes.length === 0">Você ainda não possui transações
+                                            cadastradas.</span>
+                                        <span *ngIf="transacoes.length > 0">Tente ajustar os filtros para encontrar as
+                                            transações desejadas.</span>
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Transação -->
+<div *ngIf="mostrarModal"
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 modal-overlay">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white modal-content">
+        <div class="mt-3">
+            <!-- Header do Modal -->
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                    {{ modoEdicao ? 'Editar Transação' : 'Nova Transação' }}
+                </h3>
+                <button (click)="fecharModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Formulário -->
+            <form (ngSubmit)="salvarTransacao()" #transacaoForm="ngForm">
+                <!-- Descrição -->
+                <div class="mb-4">
+                    <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">
+                        Descrição
+                    </label>
+                    <input type="text" id="descricao" name="descricao" [(ngModel)]="novaTransacao.descricao" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ex: Compra no supermercado">
+                </div>
+
+                <!-- Valor -->
+                <div class="mb-4">
+                    <label for="valor" class="block text-sm font-medium text-gray-700 mb-2">
+                        Valor (R$)
+                    </label>
+                    <input type="number" id="valor" name="valor" [(ngModel)]="novaTransacao.valor" required step="0.01"
+                        min="0"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0,00">
+                </div>
+
+                <!-- Tipo -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo
+                    </label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="tipo" value="entrada" [(ngModel)]="novaTransacao.tipo"
+                                class="mr-2 text-blue-600">
+                            <span class="text-sm text-gray-700">Entrada</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="tipo" value="saida" [(ngModel)]="novaTransacao.tipo"
+                                class="mr-2 text-blue-600">
+                            <span class="text-sm text-gray-700">Saída</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Categoria -->
+                <div class="mb-4">
+                    <label for="categoria" class="block text-sm font-medium text-gray-700 mb-2">
+                        Categoria
+                    </label>
+                    <select id="categoria" name="categoria" [(ngModel)]="novaTransacao.categoria" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Selecione uma categoria</option>
+                        <option *ngFor="let categoria of categorias" [value]="categoria">
+                            {{ categoria }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Data -->
+                <div class="mb-6">
+                    <label for="data" class="block text-sm font-medium text-gray-700 mb-2">
+                        Data
+                    </label>
+                    <input type="date" id="data" name="data" [value]="formatarDataParaInput(novaTransacao.data!)"
+                        (change)="atualizarDataTransacao($event)" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Botões -->
+                <div class="flex justify-end space-x-3">
+                    <button type="button" (click)="fecharModal()"
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                        Cancelar
+                    </button>
+                    <button type="submit" [disabled]="!transacaoForm.valid"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200">
+                        {{ modoEdicao ? 'Atualizar' : 'Salvar' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div *ngIf="mostrarModalConfirmacao"
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 confirmation-modal">
+    <div
+        class="relative top-1/2 transform -translate-y-1/2 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white modal-content">
+        <div class="mt-3 text-center">
+            <!-- Ícone de Aviso -->
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+
+            <!-- Título -->
+            <h3 class="text-lg font-medium text-gray-900 mb-2">
+                Confirmar Exclusão
+            </h3>
+
+            <!-- Mensagem -->
+            <p class="text-sm text-gray-500 mb-6">
+                Tem certeza que deseja excluir a transação
+                <strong>"{{ transacaoParaExcluir?.descricao }}"</strong>?
+                Esta ação não pode ser desfeita.
+            </p>
+
+            <!-- Botões -->
+            <div class="flex justify-center space-x-3">
+                <button type="button" (click)="fecharModalConfirmacao()"
+                    class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                    Cancelar
+                </button>
+                <button type="button" (click)="confirmarExclusao()"
+                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 danger-button">
+                    <i class="fas fa-trash mr-2"></i>
+                    Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

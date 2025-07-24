@@ -1,0 +1,174 @@
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-6">
+    <header class="mb-6">
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Dashboard Financeiro</h1>
+        <p class="text-gray-600 text-sm mt-1">Acompanhe suas finanças de forma inteligente</p>
+    </header>
+
+    <!-- Grid Principal - Gráficos e Transações -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <!-- Gráfico de Pizza - Despesas -->
+        <div
+            class="bg-white rounded-lg shadow-lg p-4 border-l-4 border-red-500 hover:shadow-xl transition-all duration-300">
+            <div class="flex items-center mb-2">
+                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                <h3 class="text-lg font-semibold text-gray-900">Despesas por Categoria</h3>
+            </div>
+            <p class="text-xs text-gray-600 mb-3">{{ nomeDoMesAtual }}</p>
+            <div class="relative h-72">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico de Barras - Receitas vs Despesas -->
+        <div
+            class="bg-white rounded-lg shadow-lg p-4 border-l-4 border-blue-500 hover:shadow-xl transition-all duration-300">
+            <div class="flex items-center mb-2">
+                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                <h3 class="text-lg font-semibold text-gray-900">Receitas vs Despesas</h3>
+            </div>
+            <p class="text-xs text-gray-600 mb-3">{{ nomeDoMesAtual }}</p>
+            <div class="relative h-72">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Lista de Transações -->
+        <div
+            class="bg-white rounded-lg shadow-lg border-l-4 border-purple-500 hover:shadow-xl transition-all duration-300">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                    <h3 class="text-lg font-semibold text-gray-900">Transações Recentes</h3>
+                </div>
+            </div>
+
+            <!-- Lista de transações -->
+            <div *ngIf="transacoesRecentes.length > 0" class="divide-y divide-gray-200 max-h-72 overflow-y-auto">
+                <div *ngFor="let transacao of transacoesRecentes" class="p-3 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h4 class="text-sm font-medium text-gray-900">{{ transacao.descricao }}</h4>
+                            <p class="text-xs text-gray-500">{{ formatarData(transacao.data) }}</p>
+                            <span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full mt-1">
+                                {{ transacao.categoria }}
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span [ngClass]="{
+                'text-green-600': transacao.valor > 0,
+                'text-red-600': transacao.valor < 0
+              }" class="text-sm font-semibold">
+                                {{ formatarValor(transacao.valor) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mensagem quando não há transações -->
+            <div *ngIf="transacoesRecentes.length === 0" class="p-6 text-center">
+                <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
+                    <i class="fas fa-receipt text-2xl"></i>
+                </div>
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Nenhuma transação recente</h4>
+                <p class="text-xs text-gray-500 mb-3">Suas transações aparecerão aqui.</p>
+                <a routerLink="/transacoes"
+                    class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-plus mr-1"></i>
+                    Adicionar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo Financeiro -->
+    <div class="mt-6">
+        <!-- Header compacto com navegação -->
+        <div
+            class="flex items-center justify-between mb-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-4 text-white">
+            <h2 class="text-xl font-bold">Resumo Financeiro</h2>
+
+            <!-- Navegação de Mês -->
+            <div class="flex items-center space-x-3">
+                <button (click)="alterarMes(-1)"
+                    class="p-1.5 text-white hover:bg-white/20 rounded-lg transition-colors">
+                    <i class="fas fa-chevron-left text-sm"></i>
+                </button>
+
+                <div class="text-center min-w-[120px]">
+                    <div class="text-sm font-semibold">{{ nomeDoMesAtual }}</div>
+                    <button (click)="irParaMesAtual()"
+                        class="text-xs text-indigo-200 hover:text-white transition-colors">
+                        Hoje
+                    </button>
+                </div>
+
+                <button (click)="alterarMes(1)" class="p-1.5 text-white hover:bg-white/20 rounded-lg transition-colors">
+                    <i class="fas fa-chevron-right text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cards de Resumo Compactos -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <!-- Card Receitas -->
+            <div
+                class="bg-gradient-to-br from-green-400 to-green-600 rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-100 text-xs mb-1">Receitas</p>
+                        <p class="text-lg font-bold">{{ formatarValor(receitasDoMes) }}</p>
+                    </div>
+                    <div class="bg-white/20 p-2 rounded-full">
+                        <i class="fas fa-arrow-up text-lg"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Gastos -->
+            <div
+                class="bg-gradient-to-br from-red-400 to-red-600 rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-red-100 text-xs mb-1">Gastos</p>
+                        <p class="text-lg font-bold">{{ formatarValor(gastosDoMes) }}</p>
+                    </div>
+                    <div class="bg-white/20 p-2 rounded-full">
+                        <i class="fas fa-arrow-down text-lg"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Saldo -->
+            <div class="rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300"
+                [ngClass]="economiaDoMes >= 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-orange-400 to-orange-600'">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs mb-1" [ngClass]="economiaDoMes >= 0 ? 'text-blue-100' : 'text-orange-100'">
+                            Saldo</p>
+                        <p class="text-lg font-bold">{{ formatarValor(economiaDoMes) }}</p>
+                    </div>
+                    <div class="bg-white/20 p-2 rounded-full">
+                        <i [ngClass]="economiaDoMes >= 0 ? 'fas fa-trending-up' : 'fas fa-trending-down'"
+                            class="text-lg"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Transações -->
+            <div
+                class="bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-purple-100 text-xs mb-1">Transações</p>
+                        <p class="text-lg font-bold">{{ totalTransacoesDoMes }}</p>
+                    </div>
+                    <div class="bg-white/20 p-2 rounded-full">
+                        <i class="fas fa-exchange-alt text-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartType } from 'chart.js';
+import { TransacoesService, Transacao } from '../../service/transacoes.service';
 
 export interface Categoria {
   id: number;
@@ -30,6 +31,7 @@ export interface NovaCategoria {
 })
 export class Categorias implements OnInit {
   categorias: Categoria[] = [];
+  transacoes: Transacao[] = [];
   categoriasFiltradas: Categoria[] = [];
   mostrarModal = false;
   modoEdicao = false;
@@ -98,22 +100,66 @@ export class Categorias implements OnInit {
     }
   };
 
+
+  constructor(private transacoesService: TransacoesService) { }
+
   ngOnInit(): void {
     this.carregarCategorias();
+    this.atualizarCategoriasComTransacoes();
     this.aplicarFiltros();
+    this.atualizarGrafico();
+    this.transacoesService.transacoes$.subscribe(transacoes => {
+      this.transacoes = transacoes;
+      this.atualizarCategoriasComTransacoes();
+      this.aplicarFiltros();
+      this.atualizarGrafico();
+    });
   }
 
   carregarCategorias(): void {
-    // Dados mock - aqui você integraria com sua API
+    // Inicializa categorias cadastradas manualmente (se houver)
     this.categorias = [
-      { id: 1, nome: 'Alimentação', icone: 'fas fa-utensils', cor: '#EF4444', tipo: 'despesa', totalTransacoes: 45, valorTotal: 1200.50, ativa: true },
-      { id: 2, nome: 'Transporte', icone: 'fas fa-car', cor: '#3B82F6', tipo: 'despesa', totalTransacoes: 23, valorTotal: 800.00, ativa: true },
-      { id: 3, nome: 'Lazer', icone: 'fas fa-gamepad', cor: '#8B5CF6', tipo: 'despesa', totalTransacoes: 12, valorTotal: 450.00, ativa: true },
-      { id: 4, nome: 'Salário', icone: 'fas fa-briefcase', cor: '#10B981', tipo: 'receita', totalTransacoes: 1, valorTotal: 5000.00, ativa: true },
-      { id: 5, nome: 'Freelance', icone: 'fas fa-laptop', cor: '#F59E0B', tipo: 'receita', totalTransacoes: 3, valorTotal: 1500.00, ativa: true },
-      { id: 6, nome: 'Educação', icone: 'fas fa-graduation-cap', cor: '#06B6D4', tipo: 'despesa', totalTransacoes: 5, valorTotal: 300.00, ativa: false }
+      { id: 1, nome: 'Alimentação', icone: 'fas fa-utensils', cor: '#EF4444', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: true },
+      { id: 2, nome: 'Transporte', icone: 'fas fa-car', cor: '#3B82F6', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: true },
+      { id: 3, nome: 'Lazer', icone: 'fas fa-gamepad', cor: '#8B5CF6', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: true },
+      { id: 4, nome: 'Salário', icone: 'fas fa-briefcase', cor: '#10B981', tipo: 'receita', totalTransacoes: 0, valorTotal: 0, ativa: true },
+      { id: 5, nome: 'Freelance', icone: 'fas fa-laptop', cor: '#F59E0B', tipo: 'receita', totalTransacoes: 0, valorTotal: 0, ativa: true },
+      { id: 6, nome: 'Educação', icone: 'fas fa-graduation-cap', cor: '#06B6D4', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: false }
     ];
-    this.atualizarGrafico();
+  }
+
+  atualizarCategoriasComTransacoes(): void {
+    // Gera categorias a partir das transações, mantendo as cadastradas manualmente
+    const categoriasMap = new Map<string, Categoria>();
+    let nextId = this.categorias.length > 0 ? Math.max(...this.categorias.map(c => c.id)) + 1 : 1;
+
+    // Adiciona categorias já cadastradas
+    this.categorias.forEach(cat => {
+      categoriasMap.set(cat.nome, { ...cat, totalTransacoes: 0, valorTotal: 0 });
+    });
+
+    // Gera categorias a partir das transações
+    this.transacoes.forEach(transacao => {
+      let categoria = categoriasMap.get(transacao.categoria);
+      if (!categoria) {
+        // Se não existe, cria uma nova categoria com valores padrão
+        categoria = {
+          id: nextId++,
+          nome: transacao.categoria,
+          icone: 'fas fa-tag',
+          cor: '#3B82F6',
+          tipo: transacao.valor >= 0 ? 'receita' : 'despesa',
+          totalTransacoes: 0,
+          valorTotal: 0,
+          ativa: true
+        };
+        categoriasMap.set(transacao.categoria, categoria);
+      }
+      categoria.totalTransacoes++;
+      categoria.valorTotal += transacao.valor;
+    });
+
+    this.categorias = Array.from(categoriasMap.values());
   }
 
   aplicarFiltros(): void {
@@ -127,11 +173,19 @@ export class Categorias implements OnInit {
   }
 
   atualizarGrafico(): void {
-    const categoriasAtivas = this.categorias.filter(c => c.ativa && c.valorTotal > 0);
+    // Mostra todas as categorias ativas com valor diferente de zero (receita ou despesa)
+    const categoriasAtivas = this.categorias.filter(c => c.ativa && c.valorTotal !== 0);
 
-    this.pieChartData.labels = categoriasAtivas.map(c => c.nome);
-    this.pieChartData.datasets[0].data = categoriasAtivas.map(c => Math.abs(c.valorTotal));
-    this.pieChartData.datasets[0].backgroundColor = categoriasAtivas.map(c => c.cor);
+    if (categoriasAtivas.length === 0) {
+      // Garante que o gráfico nunca suma
+      this.pieChartData.labels = ['Sem dados'];
+      this.pieChartData.datasets[0].data = [0];
+      this.pieChartData.datasets[0].backgroundColor = ['#E5E7EB']; // cinza claro
+    } else {
+      this.pieChartData.labels = categoriasAtivas.map(c => c.nome);
+      this.pieChartData.datasets[0].data = categoriasAtivas.map(c => Math.abs(c.valorTotal));
+      this.pieChartData.datasets[0].backgroundColor = categoriasAtivas.map(c => c.cor);
+    }
   }
 
   abrirModal(categoria?: Categoria): void {

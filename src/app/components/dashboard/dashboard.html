@@ -1,172 +1,294 @@
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-6">
-    <header class="mb-6">
-        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Dashboard Financeiro</h1>
-        <p class="text-gray-600 text-sm mt-1">Acompanhe suas finanças de forma inteligente</p>
-    </header>
-
-    <!-- Grid Principal - Gráficos e Transações -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-        <!-- Gráfico de Pizza - Despesas -->
-        <div
-            class="bg-white rounded-lg shadow-lg p-4 border-l-4 border-red-500 hover:shadow-xl transition-all duration-300">
-            <div class="flex items-center mb-2">
-                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                <h3 class="text-lg font-semibold text-gray-900">Despesas por Categoria</h3>
-            </div>
-            <p class="text-xs text-gray-600 mb-3">{{ nomeDoMesAtual }}</p>
-            <div class="relative h-72">
-                <canvas id="pieChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Gráfico de Barras - Receitas vs Despesas -->
-        <div
-            class="bg-white rounded-lg shadow-lg p-4 border-l-4 border-blue-500 hover:shadow-xl transition-all duration-300">
-            <div class="flex items-center mb-2">
-                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                <h3 class="text-lg font-semibold text-gray-900">Receitas vs Despesas</h3>
-            </div>
-            <p class="text-xs text-gray-600 mb-3">{{ nomeDoMesAtual }}</p>
-            <div class="relative h-72">
-                <canvas id="barChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Lista de Transações -->
-        <div
-            class="bg-white rounded-lg shadow-lg border-l-4 border-purple-500 hover:shadow-xl transition-all duration-300">
-            <div class="p-4 border-b border-gray-200">
-                <div class="flex items-center">
-                    <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
-                    <h3 class="text-lg font-semibold text-gray-900">Transações Recentes</h3>
-                </div>
-            </div>
-
-            <!-- Lista de transações -->
-            <div *ngIf="transacoesRecentes.length > 0" class="divide-y divide-gray-200 max-h-72 overflow-y-auto">
-                <div *ngFor="let transacao of transacoesRecentes" class="p-3 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <h4 class="text-sm font-medium text-gray-900">{{ transacao.descricao }}</h4>
-                            <p class="text-xs text-gray-500">{{ formatarData(transacao.data) }}</p>
-                            <span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full mt-1">
-                                {{ transacao.categoria }}
-                            </span>
-                        </div>
-                        <div class="text-right">
-                            <span [ngClass]="{
-                'text-green-600': transacao.valor > 0,
-                'text-red-600': transacao.valor < 0
-              }" class="text-sm font-semibold">
-                                {{ formatarValor(transacao.valor) }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mensagem quando não há transações -->
-            <div *ngIf="transacoesRecentes.length === 0" class="p-6 text-center">
-                <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
-                    <i class="fas fa-receipt text-2xl"></i>
-                </div>
-                <h4 class="text-sm font-medium text-gray-900 mb-2">Nenhuma transação recente</h4>
-                <p class="text-xs text-gray-500 mb-3">Suas transações aparecerão aqui.</p>
-                <a routerLink="/transacoes"
-                    class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-plus mr-1"></i>
-                    Adicionar
-                </a>
-            </div>
-        </div>
+<div class="min-h-screen bg-gray-50 p-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Contas e Transações</h1>
+        <p class="text-gray-600">Visualize e edite suas informações pessoais e ajuste as preferências da conta</p>
     </div>
 
-    <!-- Resumo Financeiro -->
-    <div class="mt-6">
-        <!-- Header compacto com navegação -->
-        <div
-            class="flex items-center justify-between mb-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-4 text-white">
-            <h2 class="text-xl font-bold">Resumo Financeiro</h2>
+    <!-- Layout Principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- Navegação de Mês -->
-            <div class="flex items-center space-x-3">
-                <button (click)="alterarMes(-1)"
-                    class="p-1.5 text-white hover:bg-white/20 rounded-lg transition-colors">
-                    <i class="fas fa-chevron-left text-sm"></i>
-                </button>
+        <!-- Coluna Esquerda - Gráficos -->
+        <div class="lg:col-span-2 space-y-6">
 
-                <div class="text-center min-w-[120px]">
-                    <div class="text-sm font-semibold">{{ nomeDoMesAtual }}</div>
-                    <button (click)="irParaMesAtual()"
-                        class="text-xs text-indigo-200 hover:text-white transition-colors">
-                        Hoje
+            <!-- Gráfico Principal - O dinheiro que você gasta -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">O dinheiro que você gasta</h3>
+                        <p class="text-sm text-gray-500">Visualize os detalhes das suas despesas mensais</p>
+                    </div>
+                    <button
+                        class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
+                        Ver Relatório Completo
                     </button>
                 </div>
 
-                <button (click)="alterarMes(1)" class="p-1.5 text-white hover:bg-white/20 rounded-lg transition-colors">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </button>
+                <!-- Controles de Período -->
+                <div class="flex space-x-1 mb-6">
+                    <button (click)="alterarMes(-12)"
+                        class="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium">12 Meses</button>
+                    <button (click)="alterarMes(-1)"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">30
+                        Dias</button>
+                    <button
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">7
+                        Dias</button>
+                    <button
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">+
+                        Personalizado</button>
+                </div>
+
+                <!-- Gráfico de Barras -->
+                <div class="relative h-80">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Seção Inferior - Saving Plan e Upcoming Payment -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Saving Plan -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Plano de Poupança</h3>
+                        <p class="text-sm text-gray-500">Veja informações sobre suas metas financeiras</p>
+                    </div>
+
+                    <!-- Holidays Card -->
+                    <div
+                        class="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-4 text-white mb-4 relative overflow-hidden saving-card">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-palm-tree text-xl mr-2"></i>
+                                    <span class="font-semibold">Férias</span>
+                                </div>
+                                <div class="text-2xl font-bold">{{ formatarValor(receitasDoMes * 0.4) }}/{{
+                                    formatarValor(receitasDoMes * 0.75) }}</div>
+                                <div class="text-green-100 text-sm">{{ Math.round((receitasDoMes * 0.4) / (receitasDoMes
+                                    * 0.75) * 100) }}%</div>
+                            </div>
+                        </div>
+                        <!-- Decorative palm tree -->
+                        <div class="absolute right-0 top-0 opacity-20">
+                            <i class="fas fa-palm-tree text-6xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Retirement Plan Card -->
+                    <div
+                        class="bg-gradient-to-br from-amber-400 to-amber-500 rounded-xl p-4 text-white mb-4 relative overflow-hidden saving-card">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-piggy-bank text-xl mr-2"></i>
+                                    <span class="font-semibold">Aposentadoria</span>
+                                </div>
+                                <div class="text-2xl font-bold">{{ formatarValor(economiaDoMes * 2) }}/{{
+                                    formatarValor(economiaDoMes * 15) }}</div>
+                                <div class="text-amber-100 text-sm">{{ Math.round((economiaDoMes * 2) / (economiaDoMes *
+                                    15) * 100) }}%</div>
+                            </div>
+                        </div>
+                        <!-- Decorative icon -->
+                        <div class="absolute right-0 top-0 opacity-20">
+                            <i class="fas fa-coins text-6xl"></i>
+                        </div>
+                    </div>
+
+                    <button class="w-full text-center text-gray-600 text-sm hover:text-gray-800 transition-colors">
+                        Ver Todas as Metas
+                    </button>
+                </div>
+
+                <!-- Upcoming Payment -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Próximos Pagamentos</h3>
+                        <p class="text-sm text-gray-500">Contas e assinaturas a vencer este mês</p>
+                    </div>
+
+                    <!-- Payment Icons Grid -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-xs text-gray-500 mb-2">AGO 12</div>
+                            <div
+                                class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <i class="fab fa-google text-blue-600"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-500 mb-2">AGO 13</div>
+                            <div
+                                class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <i class="fas fa-chart-line text-gray-600"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-500 mb-2">AGO 14</div>
+                            <div
+                                class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <i class="fab fa-adobe text-red-600"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-500 mb-2">AGO 15</div>
+                            <div
+                                class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <span class="text-purple-600 font-bold text-sm">M</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="text-center">
+                            <div
+                                class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <i class="fab fa-linkedin text-blue-600"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div
+                                class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <span class="text-purple-600 font-bold text-sm">W</span>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div
+                                class="w-12 h-12 bg-black rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <i class="fab fa-netflix text-white"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div
+                                class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
+                                <i class="fas fa-plus text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="w-full text-center text-gray-600 text-sm hover:text-gray-800 transition-colors">
+                        Gerenciar todos os pagamentos
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Cards de Resumo Compactos -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <!-- Card Receitas -->
-            <div
-                class="bg-gradient-to-br from-green-400 to-green-600 rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-green-100 text-xs mb-1">Receitas</p>
-                        <p class="text-lg font-bold">{{ formatarValor(receitasDoMes) }}</p>
+        <!-- Coluna Direita - Connected Cards e Transações -->
+        <div class="space-y-6">
+
+            <!-- Connected Cards -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Cartões Conectados</h3>
+                    <p class="text-sm text-gray-500">Configurações e opções para sua conta</p>
+                </div>
+
+                <!-- Card Principal -->
+                <div
+                    class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-6 text-white mb-4 relative overflow-hidden card-hover">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-teal-100 text-sm">CONTA POUPANÇA</span>
+                        <div class="flex space-x-1">
+                            <div class="w-8 h-8 bg-white/20 rounded-full"></div>
+                            <div class="w-8 h-8 bg-white/40 rounded-full"></div>
+                        </div>
                     </div>
-                    <div class="bg-white/20 p-2 rounded-full">
-                        <i class="fas fa-arrow-up text-lg"></i>
+
+                    <div class="mb-4">
+                        <div class="text-teal-100 text-sm mb-1">SALDO</div>
+                        <div class="text-3xl font-bold">{{ formatarValor(economiaDoMes) }}</div>
+                    </div>
+                </div>
+
+                <!-- Navigation dots -->
+                <div class="flex justify-center space-x-2 mb-4">
+                    <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div class="w-2 h-2 bg-gray-800 rounded-full"></div>
+                    <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div class="text-center">
+                        <div
+                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
+                            <i class="fas fa-arrow-up text-gray-600"></i>
+                        </div>
+                        <span class="text-xs text-gray-600">Recarga</span>
+                    </div>
+                    <div class="text-center">
+                        <div
+                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
+                            <i class="fas fa-paper-plane text-gray-600"></i>
+                        </div>
+                        <span class="text-xs text-gray-600">Enviar</span>
+                    </div>
+                    <div class="text-center">
+                        <div
+                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
+                            <i class="fas fa-download text-gray-600"></i>
+                        </div>
+                        <span class="text-xs text-gray-600">Sacar</span>
+                    </div>
+                    <div class="text-center">
+                        <div
+                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
+                            <i class="fas fa-qrcode text-gray-600"></i>
+                        </div>
+                        <span class="text-xs text-gray-600">PIX</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Card Gastos -->
-            <div
-                class="bg-gradient-to-br from-red-400 to-red-600 rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-red-100 text-xs mb-1">Gastos</p>
-                        <p class="text-lg font-bold">{{ formatarValor(gastosDoMes) }}</p>
-                    </div>
-                    <div class="bg-white/20 p-2 rounded-full">
-                        <i class="fas fa-arrow-down text-lg"></i>
+            <!-- Recent Transactions -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Transações recentes</h3>
+                    <p class="text-sm text-gray-500 mb-2">ESTE MÊS</p>
+                </div>
+
+                <!-- Lista de Transações -->
+                <div *ngIf="transacoesRecentes.length > 0" class="space-y-4 transactions-list">
+                    <div *ngFor="let transacao of transacoesRecentes" class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div [ngClass]="getIconeCategoria(transacao.categoria).background"
+                                class="w-10 h-10 rounded-full flex items-center justify-center mr-3 transaction-icon">
+                                <i
+                                    [ngClass]="getIconeCategoria(transacao.categoria).icon + ' ' + getIconeCategoria(transacao.categoria).color"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">{{ transacao.descricao }}</h4>
+                                <p class="text-xs text-gray-500">{{ formatarData(transacao.data) }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span [ngClass]="{
+                                'text-green-600': transacao.valor > 0,
+                                'text-red-600': transacao.valor < 0
+                            }" class="text-sm font-semibold">
+                                {{ formatarValor(transacao.valor) }}
+                            </span>
+                            <div class="text-xs text-gray-500">
+                                {{ transacao.valor > 0 ? 'Recebido' : 'Enviado' }}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Card Saldo -->
-            <div class="rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300"
-                [ngClass]="economiaDoMes >= 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-orange-400 to-orange-600'">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs mb-1" [ngClass]="economiaDoMes >= 0 ? 'text-blue-100' : 'text-orange-100'">
-                            Saldo</p>
-                        <p class="text-lg font-bold">{{ formatarValor(economiaDoMes) }}</p>
+                <!-- Mensagem quando não há transações -->
+                <div *ngIf="transacoesRecentes.length === 0" class="text-center py-8">
+                    <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
+                        <i class="fas fa-receipt text-2xl"></i>
                     </div>
-                    <div class="bg-white/20 p-2 rounded-full">
-                        <i [ngClass]="economiaDoMes >= 0 ? 'fas fa-trending-up' : 'fas fa-trending-down'"
-                            class="text-lg"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card Transações -->
-            <div
-                class="bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg shadow-lg p-4 text-white transform hover:scale-105 transition-all duration-300">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-purple-100 text-xs mb-1">Transações</p>
-                        <p class="text-lg font-bold">{{ totalTransacoesDoMes }}</p>
-                    </div>
-                    <div class="bg-white/20 p-2 rounded-full">
-                        <i class="fas fa-exchange-alt text-lg"></i>
-                    </div>
+                    <h4 class="text-sm font-medium text-gray-900 mb-2">Nenhuma transação recente</h4>
+                    <p class="text-xs text-gray-500 mb-3">Suas transações aparecerão aqui.</p>
+                    <a routerLink="/transacoes"
+                        class="inline-flex items-center px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>
+                        Adicionar Transação
+                    </a>
                 </div>
             </div>
         </div>

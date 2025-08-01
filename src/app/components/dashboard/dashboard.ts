@@ -192,45 +192,38 @@ export class Dashboard implements OnInit, OnDestroy {
 
     Chart.register(...registerables);
 
-    // Combinar todas as categorias únicas
-    const todasCategorias = new Set([
-      ...this.gastosPorCategoria.map(g => g.categoria),
-      ...this.receitasPorCategoria.map(r => r.categoria)
-    ]);
+    // Simular dados mensais para um visual similar à imagem
+    const meses = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEPT', 'OCT', 'NOV', 'DEC'];
 
-    const categorias = Array.from(todasCategorias);
-
-    // Mapear valores para cada categoria
-    const valoresReceitas = categorias.map(categoria => {
-      const receita = this.receitasPorCategoria.find(r => r.categoria === categoria);
-      return receita ? receita.total : 0;
+    // Gerar dados simulados baseados nas transações existentes
+    const receitasSimuladas = Array.from({ length: 12 }, (_, i) => {
+      const base = this.receitasDoMes || 5000;
+      return base + (Math.random() * 3000 - 1500);
     });
 
-    const valoresDespesas = categorias.map(categoria => {
-      const gasto = this.gastosPorCategoria.find(g => g.categoria === categoria);
-      return gasto ? gasto.total : 0;
+    const despesasSimuladas = Array.from({ length: 12 }, (_, i) => {
+      const base = this.gastosDoMes || 3000;
+      return base + (Math.random() * 2000 - 1000);
     });
 
     const data = {
-      labels: categorias,
+      labels: meses,
       datasets: [
         {
           label: 'Receitas',
-          data: valoresReceitas,
-          backgroundColor: 'rgba(16, 185, 129, 0.8)',
-          borderColor: '#10B981',
-          borderWidth: 2,
-          borderRadius: 4,
-          hoverBackgroundColor: 'rgba(16, 185, 129, 0.9)'
+          data: receitasSimuladas,
+          backgroundColor: '#3B82F6',
+          borderRadius: 8,
+          borderSkipped: false,
+          barThickness: 20,
         },
         {
           label: 'Despesas',
-          data: valoresDespesas,
-          backgroundColor: 'rgba(239, 68, 68, 0.8)',
-          borderColor: '#EF4444',
-          borderWidth: 2,
-          borderRadius: 4,
-          hoverBackgroundColor: 'rgba(239, 68, 68, 0.9)'
+          data: despesasSimuladas,
+          backgroundColor: '#60A5FA',
+          borderRadius: 8,
+          borderSkipped: false,
+          barThickness: 20,
         }
       ]
     };
@@ -241,11 +234,23 @@ export class Dashboard implements OnInit, OnDestroy {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 20,
+            bottom: 20
+          }
+        },
         plugins: {
           legend: {
-            position: 'top',
+            display: false
           },
           tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: 'white',
+            bodyColor: 'white',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            cornerRadius: 8,
             callbacks: {
               label: (context) => {
                 const value = context.parsed.y;
@@ -259,17 +264,29 @@ export class Dashboard implements OnInit, OnDestroy {
           }
         },
         scales: {
-          y: {
-            beginAtZero: true,
+          x: {
+            display: true,
+            grid: {
+              display: false
+            },
             ticks: {
-              callback: function (value) {
-                return new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                  minimumFractionDigits: 0
-                }).format(value as number);
+              color: '#6B7280',
+              font: {
+                size: 12
               }
             }
+          },
+          y: {
+            display: false,
+            grid: {
+              display: false
+            },
+            beginAtZero: true
+          }
+        },
+        elements: {
+          bar: {
+            borderRadius: 8
           }
         }
       }
@@ -373,9 +390,15 @@ export class Dashboard implements OnInit, OnDestroy {
 
   // Métodos para navegar entre meses
   alterarMes(direcao: number) {
-    const novaData = new Date(this.anoAtual, this.mesAtual + direcao);
-    this.mesAtual = novaData.getMonth();
-    this.anoAtual = novaData.getFullYear();
+    // Para controles de período como 12 meses, ajustar logicamente
+    if (Math.abs(direcao) > 1) {
+      // Para períodos maiores, vamos voltar um ano
+      this.anoAtual = direcao > 0 ? this.anoAtual + 1 : this.anoAtual - 1;
+    } else {
+      const novaData = new Date(this.anoAtual, this.mesAtual + direcao);
+      this.mesAtual = novaData.getMonth();
+      this.anoAtual = novaData.getFullYear();
+    }
 
     // Atualizar gráficos quando mudar período
     this.processarDadosParaGrafico();
@@ -424,5 +447,21 @@ export class Dashboard implements OnInit, OnDestroy {
       'gray': '#6B7280'
     };
     return coresMap[cor] || '#6B7280';
+  }
+
+  getIconeCategoria(categoria: string): { icon: string; color: string; background: string } {
+    const iconesMap: { [key: string]: { icon: string; color: string; background: string } } = {
+      'Alimentação': { icon: 'fas fa-utensils', color: 'text-red-600', background: 'bg-red-100' },
+      'Transporte': { icon: 'fas fa-car', color: 'text-blue-600', background: 'bg-blue-100' },
+      'Entretenimento': { icon: 'fas fa-film', color: 'text-purple-600', background: 'bg-purple-100' },
+      'Renda': { icon: 'fas fa-dollar-sign', color: 'text-green-600', background: 'bg-green-100' },
+      'Saúde': { icon: 'fas fa-heartbeat', color: 'text-pink-600', background: 'bg-pink-100' },
+      'Educação': { icon: 'fas fa-graduation-cap', color: 'text-indigo-600', background: 'bg-indigo-100' },
+      'Lazer': { icon: 'fas fa-gamepad', color: 'text-orange-600', background: 'bg-orange-100' },
+      'Compras': { icon: 'fas fa-shopping-bag', color: 'text-yellow-600', background: 'bg-yellow-100' },
+      'Contas': { icon: 'fas fa-file-invoice-dollar', color: 'text-gray-600', background: 'bg-gray-100' },
+      'Outros': { icon: 'fas fa-ellipsis-h', color: 'text-cyan-600', background: 'bg-cyan-100' }
+    };
+    return iconesMap[categoria] || { icon: 'fas fa-circle', color: 'text-gray-600', background: 'bg-gray-100' };
   }
 }

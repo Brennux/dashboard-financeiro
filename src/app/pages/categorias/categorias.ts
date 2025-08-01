@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartType } from 'chart.js';
 import { TransacoesService, Transacao } from '../../service/transacoes.service';
+import { CategoriasService, CategoriaBase } from '../../service/categorias.service';
+import { ValidationService, ValidationError } from '../../service/validation.service';
+import { NotificationService } from '../../service/notification.service';
 
 export interface Categoria {
   id: number;
@@ -31,6 +34,7 @@ export interface NovaCategoria {
 })
 export class Categorias implements OnInit {
   categorias: Categoria[] = [];
+  categoriasBase: CategoriaBase[] = [];
   transacoes: Transacao[] = [];
   categoriasFiltradas: Categoria[] = [];
   mostrarModal = false;
@@ -39,6 +43,61 @@ export class Categorias implements OnInit {
   filtroTipo: 'todos' | 'receita' | 'despesa' = 'todos';
   filtroBusca = '';
   mostrarInativos = false;
+  validationErrors: ValidationError[] = [];
+  isSubmitting: boolean = false;
+
+  // Propriedades para o calendário
+  mostrarCalendario: boolean = false;
+  anoAtual: number = new Date().getFullYear();
+  nomesMeses: string[] = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  mesSelecionado: string = '';
+  textoMesSelecionado: string = '';
+  mesesComTransacoes: Set<string> = new Set();
+  toggleCalendario(): void {
+    this.mostrarCalendario = !this.mostrarCalendario;
+  }
+
+  alterarAno(delta: number): void {
+    this.anoAtual += delta;
+  }
+
+  selecionarMes(mes: number, ano: number): void {
+    this.mesSelecionado = `${ano}-${(mes + 1).toString().padStart(2, '0')}`;
+    this.textoMesSelecionado = `${this.nomesMeses[mes]}/${ano}`;
+    this.mostrarCalendario = false;
+    this.onFiltroMes();
+  }
+
+  verificarMesSelecionado(mes: number, ano: number): boolean {
+    return this.mesSelecionado === `${ano}-${(mes + 1).toString().padStart(2, '0')}`;
+  }
+
+  limparFiltroMes(): void {
+    this.configurarMesAtual();
+    this.mostrarCalendario = false;
+    this.onFiltroMes();
+  }
+
+  fecharCalendario(): void {
+    this.mostrarCalendario = false;
+  }
+
+  atualizarMesesComTransacoes(): void {
+    this.mesesComTransacoes.clear();
+    this.transacoes.forEach(transacao => {
+      const data = new Date(transacao.data);
+      const chave = `${data.getFullYear()}-${(data.getMonth() + 1).toString().padStart(2, '0')}`;
+      this.mesesComTransacoes.add(chave);
+    });
+  }
+
+  verificarMesComTransacoes(mes: number, ano: number): boolean {
+    const chave = `${ano}-${(mes + 1).toString().padStart(2, '0')}`;
+    return this.mesesComTransacoes.has(chave);
+  }
 
   novaCategoria: NovaCategoria = {
     nome: '',
@@ -88,11 +147,16 @@ export class Categorias implements OnInit {
         }
       },
       tooltip: {
+        enabled: true,
         callbacks: {
           label: (context) => {
+            // Desabilita tooltip se não há dados reais
+            if (context.label === 'Nenhum dado disponível') return '';
+
             const label = context.label || '';
             const value = this.formatarValor(context.parsed);
-            const percentage = ((context.parsed / this.getTotalValor()) * 100).toFixed(1);
+            const total = this.pieChartData.datasets[0].data.reduce((acc: number, val: any) => acc + val, 0);
+            const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : '0';
             return `${label}: ${value} (${percentage}%)`;
           }
         }
@@ -101,50 +165,98 @@ export class Categorias implements OnInit {
   };
 
 
-  constructor(private transacoesService: TransacoesService) { }
+  constructor(
+    private transacoesService: TransacoesService,
+    private categoriasService: CategoriasService,
+    private validationService: ValidationService,
+    private notificationService: NotificationService
+  ) { }
 
   ngOnInit(): void {
+    // Configurar filtro para o mês atual por padrão
+    this.configurarMesAtual();
+
     this.carregarCategorias();
     this.atualizarCategoriasComTransacoes();
+    this.atualizarMesesComTransacoes();
     this.aplicarFiltros();
     this.atualizarGrafico();
+
+    // Subscrever às mudanças das transações
     this.transacoesService.transacoes$.subscribe(transacoes => {
       this.transacoes = transacoes;
+      this.atualizarCategoriasComTransacoes();
+      this.atualizarMesesComTransacoes();
+      this.aplicarFiltros();
+      this.atualizarGrafico();
+    });
+
+    // Subscrever às mudanças das categorias
+    this.categoriasService.categorias$.subscribe(categorias => {
+      this.categoriasBase = categorias;
       this.atualizarCategoriasComTransacoes();
       this.aplicarFiltros();
       this.atualizarGrafico();
     });
   }
 
+  configurarMesAtual(): void {
+    const agora = new Date();
+    const ano = agora.getFullYear();
+    const mes = agora.getMonth();
+
+    this.anoAtual = ano;
+    this.mesSelecionado = `${ano}-${(mes + 1).toString().padStart(2, '0')}`;
+    this.textoMesSelecionado = `${this.nomesMeses[mes]}/${ano}`;
+  }
+
+  onFiltroMes(): void {
+    this.atualizarCategoriasComTransacoes();
+    this.atualizarMesesComTransacoes();
+    this.aplicarFiltros();
+    this.atualizarGrafico();
+  }
+
   carregarCategorias(): void {
-    // Inicializa categorias cadastradas manualmente (se houver)
-    this.categorias = [
-      { id: 1, nome: 'Alimentação', icone: 'fas fa-utensils', cor: '#EF4444', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: true },
-      { id: 2, nome: 'Transporte', icone: 'fas fa-car', cor: '#3B82F6', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: true },
-      { id: 3, nome: 'Lazer', icone: 'fas fa-gamepad', cor: '#8B5CF6', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: true },
-      { id: 4, nome: 'Salário', icone: 'fas fa-briefcase', cor: '#10B981', tipo: 'receita', totalTransacoes: 0, valorTotal: 0, ativa: true },
-      { id: 5, nome: 'Freelance', icone: 'fas fa-laptop', cor: '#F59E0B', tipo: 'receita', totalTransacoes: 0, valorTotal: 0, ativa: true },
-      { id: 6, nome: 'Educação', icone: 'fas fa-graduation-cap', cor: '#06B6D4', tipo: 'despesa', totalTransacoes: 0, valorTotal: 0, ativa: false }
-    ];
+    // As categorias agora são carregadas automaticamente pelo serviço
+    // Este método é mantido para compatibilidade, mas não faz nada
   }
 
   atualizarCategoriasComTransacoes(): void {
-    // Gera categorias a partir das transações, mantendo as cadastradas manualmente
+    // Gera categorias a partir das categorias base do serviço e das transações
     const categoriasMap = new Map<string, Categoria>();
-    let nextId = this.categorias.length > 0 ? Math.max(...this.categorias.map(c => c.id)) + 1 : 1;
 
-    // Adiciona categorias já cadastradas
-    this.categorias.forEach(cat => {
-      categoriasMap.set(cat.nome, { ...cat, totalTransacoes: 0, valorTotal: 0 });
+    // Adiciona categorias do serviço
+    this.categoriasBase.forEach(catBase => {
+      categoriasMap.set(catBase.nome, {
+        id: catBase.id,
+        nome: catBase.nome,
+        icone: catBase.icone,
+        cor: catBase.cor,
+        tipo: catBase.tipo,
+        ativa: catBase.ativa,
+        totalTransacoes: 0,
+        valorTotal: 0
+      });
     });
 
-    // Gera categorias a partir das transações
-    this.transacoes.forEach(transacao => {
+    // Filtra transações pelo mês selecionado, se houver
+    const transacoesFiltradas = this.mesSelecionado
+      ? this.transacoes.filter(t => {
+        const data = new Date(t.data);
+        const mes = data.toISOString().slice(0, 7); // 'YYYY-MM'
+        return mes === this.mesSelecionado;
+      })
+      : this.transacoes;
+
+    // Gera categorias a partir das transações filtradas
+    transacoesFiltradas.forEach(transacao => {
       let categoria = categoriasMap.get(transacao.categoria);
       if (!categoria) {
-        // Se não existe, cria uma nova categoria com valores padrão
+        // Se não existe nas categorias base, cria uma temporária
+        const nextId = Math.max(...this.categoriasBase.map(c => c.id), 0) + 1;
         categoria = {
-          id: nextId++,
+          id: nextId,
           nome: transacao.categoria,
           icone: 'fas fa-tag',
           cor: '#3B82F6',
@@ -173,19 +285,46 @@ export class Categorias implements OnInit {
   }
 
   atualizarGrafico(): void {
-    // Mostra todas as categorias ativas com valor diferente de zero (receita ou despesa)
-    const categoriasAtivas = this.categorias.filter(c => c.ativa && c.valorTotal !== 0);
+    // Filtra transações pelo mês selecionado para o gráfico
+    const transacoesFiltradas = this.mesSelecionado
+      ? this.transacoes.filter(t => {
+        const data = new Date(t.data);
+        const mes = data.toISOString().slice(0, 7); // 'YYYY-MM'
+        return mes === this.mesSelecionado;
+      })
+      : this.transacoes;
 
-    if (categoriasAtivas.length === 0) {
-      // Garante que o gráfico nunca suma
-      this.pieChartData.labels = ['Sem dados'];
-      this.pieChartData.datasets[0].data = [0];
-      this.pieChartData.datasets[0].backgroundColor = ['#E5E7EB']; // cinza claro
-    } else {
-      this.pieChartData.labels = categoriasAtivas.map(c => c.nome);
-      this.pieChartData.datasets[0].data = categoriasAtivas.map(c => Math.abs(c.valorTotal));
-      this.pieChartData.datasets[0].backgroundColor = categoriasAtivas.map(c => c.cor);
-    }
+    // Cria um mapa para calcular valores por categoria
+    const categoriasMap = new Map<string, { nome: string, cor: string, valor: number }>();
+
+    // Inicializa com categorias ativas
+    this.categorias.forEach(cat => {
+      if (cat.ativa) {
+        categoriasMap.set(cat.nome, { nome: cat.nome, cor: cat.cor, valor: 0 });
+      }
+    });
+
+    // Soma valores das transações filtradas
+    transacoesFiltradas.forEach(transacao => {
+      const cat = categoriasMap.get(transacao.categoria);
+      if (cat) {
+        cat.valor += transacao.valor;
+      }
+    });
+
+    const categoriasComValor = Array.from(categoriasMap.values()).filter(c => c.valor !== 0);
+    const hasData = categoriasComValor.length > 0;
+
+    // Força a recriação do objeto para garantir que o Chart.js detecte as mudanças
+    this.pieChartData = {
+      labels: hasData ? categoriasComValor.map(c => c.nome) : ['Nenhum dado disponível'],
+      datasets: [{
+        data: hasData ? categoriasComValor.map(c => Math.abs(c.valor)) : [1],
+        backgroundColor: hasData ? categoriasComValor.map(c => c.cor) : ['#E5E7EB'],
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    };
   }
 
   abrirModal(categoria?: Categoria): void {
@@ -220,54 +359,77 @@ export class Categorias implements OnInit {
       cor: '#3B82F6',
       tipo: 'despesa'
     };
+    // Limpar erros de validação
+    this.validationErrors = [];
+    this.isSubmitting = false;
   }
 
   salvarCategoria(): void {
-    if (!this.novaCategoria.nome.trim()) return;
+    // Limpar erros anteriores
+    this.validationErrors = [];
 
-    if (this.modoEdicao && this.categoriaEditando) {
-      // Editar categoria existente
-      const index = this.categorias.findIndex(c => c.id === this.categoriaEditando!.id);
-      if (index !== -1) {
-        this.categorias[index] = {
-          ...this.categorias[index],
+    // Validar categoria
+    this.validationErrors = this.validationService.validateCategoria(this.novaCategoria);
+
+    if (this.validationErrors.length > 0) {
+      this.notificationService.error('Erro de Validação', 'Por favor, corrija os erros no formulário antes de continuar.');
+      return;
+    }
+
+    if (!this.novaCategoria.nome.trim()) {
+      this.notificationService.error('Campo Obrigatório', 'O nome da categoria é obrigatório.');
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    try {
+      if (this.modoEdicao && this.categoriaEditando) {
+        // Editar categoria existente
+        this.categoriasService.editarCategoria(this.categoriaEditando.id, {
           nome: this.novaCategoria.nome,
           icone: this.novaCategoria.icone,
           cor: this.novaCategoria.cor,
-          tipo: this.novaCategoria.tipo
-        };
+          tipo: this.novaCategoria.tipo,
+          ativa: this.categoriaEditando.ativa
+        });
+        this.notificationService.categoriaEditada(this.novaCategoria.nome);
+      } else {
+        // Criar nova categoria
+        this.categoriasService.adicionarCategoria({
+          nome: this.novaCategoria.nome,
+          icone: this.novaCategoria.icone,
+          cor: this.novaCategoria.cor,
+          tipo: this.novaCategoria.tipo,
+          ativa: true
+        });
+        this.notificationService.categoriaAdicionada(this.novaCategoria.nome);
       }
-    } else {
-      // Criar nova categoria
-      const novaId = Math.max(...this.categorias.map(c => c.id), 0) + 1;
-      this.categorias.push({
-        id: novaId,
-        nome: this.novaCategoria.nome,
-        icone: this.novaCategoria.icone,
-        cor: this.novaCategoria.cor,
-        tipo: this.novaCategoria.tipo,
-        totalTransacoes: 0,
-        valorTotal: 0,
-        ativa: true
-      });
-    }
 
-    this.aplicarFiltros();
-    this.atualizarGrafico();
-    this.fecharModal();
+      this.fecharModal();
+    } catch (error) {
+      this.notificationService.error('Erro', 'Erro ao salvar categoria. Tente novamente.');
+    } finally {
+      this.isSubmitting = false;
+    }
   }
 
   alternarStatusCategoria(categoria: Categoria): void {
-    categoria.ativa = !categoria.ativa;
-    this.aplicarFiltros();
-    this.atualizarGrafico();
+    try {
+      this.categoriasService.alternarStatusCategoria(categoria.id);
+      const novoStatus = categoria.ativa ? 'desativada' : 'ativada';
+      this.notificationService.success(
+        'Status Alterado',
+        `Categoria "${categoria.nome}" foi ${novoStatus} com sucesso.`
+      );
+    } catch (error) {
+      this.notificationService.error('Erro', 'Erro ao alterar status da categoria. Tente novamente.');
+    }
   }
 
   excluirCategoria(categoria: Categoria): void {
     if (confirm(`Tem certeza que deseja excluir a categoria "${categoria.nome}"?`)) {
-      this.categorias = this.categorias.filter(c => c.id !== categoria.id);
-      this.aplicarFiltros();
-      this.atualizarGrafico();
+      this.categoriasService.excluirCategoria(categoria.id);
     }
   }
 
@@ -302,5 +464,22 @@ export class Categorias implements OnInit {
 
   getCategoriasAtivas(): number {
     return this.categorias.filter(c => c.ativa).length;
+  }
+
+  // Métodos para validação e exibição de erros
+  getFieldError(fieldName: string): string | null {
+    const error = this.validationErrors.find(error => error.field === fieldName);
+    return error ? error.message : null;
+  }
+
+  hasFieldError(fieldName: string): boolean {
+    return this.validationErrors.some(error => error.field === fieldName);
+  }
+
+  getFieldClass(fieldName: string): string {
+    if (this.hasFieldError(fieldName)) {
+      return 'border-red-500 focus:border-red-500 focus:ring-red-500';
+    }
+    return 'border-gray-300 focus:border-blue-500 focus:ring-blue-500';
   }
 }

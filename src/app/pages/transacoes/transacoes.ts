@@ -2,6 +2,9 @@ import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TransacoesService, Transacao } from '../../service/transacoes.service';
+import { CategoriasService } from '../../service/categorias.service';
+import { ValidationService, ValidationError } from '../../service/validation.service';
+import { NotificationService } from '../../service/notification.service';
 import { Subscription } from 'rxjs';
 
 interface TransacaoForm {
@@ -27,6 +30,9 @@ export class Transacoes implements OnInit, OnDestroy {
 
   transacoes: Transacao[] = [];
   private transacoesSub!: Subscription;
+  categorias: string[] = [];
+  validationErrors: ValidationError[] = [];
+  isSubmitting: boolean = false;
 
   // Propriedades para filtros
   mesesDisponiveis: string[] = [];
@@ -42,20 +48,12 @@ export class Transacoes implements OnInit, OnDestroy {
   mesAtual: number = new Date().getMonth();
   anosDisponiveis: number[] = [];
 
-  constructor(private transacoesService: TransacoesService) { }
-
-  categorias = [
-    'Alimentação',
-    'Transporte',
-    'Entretenimento',
-    'Renda',
-    'Saúde',
-    'Educação',
-    'Lazer',
-    'Compras',
-    'Contas',
-    'Outros'
-  ];
+  constructor(
+    private transacoesService: TransacoesService,
+    private categoriasService: CategoriasService,
+    private validationService: ValidationService,
+    private notificationService: NotificationService
+  ) { }
 
   novaTransacao: TransacaoForm = {
     descricao: '',
@@ -69,6 +67,11 @@ export class Transacoes implements OnInit, OnDestroy {
     this.transacoesSub = this.transacoesService.transacoes$.subscribe(transacoes => {
       this.transacoes = transacoes;
       this.atualizarMesesDisponiveis();
+    });
+
+    // Subscrever às categorias do serviço
+    this.categoriasService.categorias$.subscribe(categorias => {
+      this.categorias = categorias.filter(c => c.ativa).map(c => c.nome);
     });
   }
 
@@ -275,10 +278,32 @@ export class Transacoes implements OnInit, OnDestroy {
       tipo: 'saida',
       data: new Date()
     };
+    // Limpar erros de validação
+    this.validationErrors = [];
+    this.isSubmitting = false;
   }
 
   salvarTransacao() {
-    if (this.validarFormulario()) {
+    // Limpar erros anteriores
+    this.validationErrors = [];
+
+    // Validar formulário
+    this.validationErrors = this.validationService.validateTransacao(this.novaTransacao);
+
+    if (this.validationErrors.length > 0) {
+      this.notificationService.error('Erro de Validação', 'Por favor, corrija os erros no formulário antes de continuar.');
+      return;
+    }
+
+    // Verificar se todos os campos obrigatórios estão preenchidos
+    if (!this.validarFormulario()) {
+      this.notificationService.error('Campos Obrigatórios', 'Todos os campos são obrigatórios.');
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    try {
       const transacaoParaServico = {
         descricao: this.novaTransacao.descricao,
         valor: this.novaTransacao.tipo === 'saida' ? -Math.abs(this.novaTransacao.valor) : Math.abs(this.novaTransacao.valor),
@@ -289,12 +314,18 @@ export class Transacoes implements OnInit, OnDestroy {
       if (this.modoEdicao && this.transacaoEditando) {
         // Editar transação existente
         this.transacoesService.editarTransacao(this.transacaoEditando.id, transacaoParaServico);
+        this.notificationService.transacaoEditada(this.novaTransacao.descricao);
       } else {
         // Adicionar nova transação
         this.transacoesService.adicionarTransacao(transacaoParaServico);
+        this.notificationService.transacaoAdicionada(this.novaTransacao.descricao, this.novaTransacao.valor);
       }
 
       this.fecharModal();
+    } catch (error) {
+      this.notificationService.error('Erro', 'Erro ao salvar transação. Tente novamente.');
+    } finally {
+      this.isSubmitting = false;
     }
   }
 
@@ -311,7 +342,12 @@ export class Transacoes implements OnInit, OnDestroy {
 
   confirmarExclusao() {
     if (this.transacaoParaExcluir) {
-      this.transacoesService.excluirTransacao(this.transacaoParaExcluir.id);
+      try {
+        this.transacoesService.excluirTransacao(this.transacaoParaExcluir.id);
+        this.notificationService.transacaoExcluida(this.transacaoParaExcluir.descricao);
+      } catch (error) {
+        this.notificationService.error('Erro', 'Erro ao excluir transação. Tente novamente.');
+      }
     }
     this.fecharModalConfirmacao();
   }
@@ -343,5 +379,22 @@ export class Transacoes implements OnInit, OnDestroy {
 
   atualizarDataTransacao(event: any) {
     this.novaTransacao.data = new Date(event.target.value);
+  }
+
+  // Métodos para validação e exibição de erros
+  getFieldError(fieldName: string): string | null {
+    const error = this.validationErrors.find(error => error.field === fieldName);
+    return error ? error.message : null;
+  }
+
+  hasFieldError(fieldName: string): boolean {
+    return this.validationErrors.some(error => error.field === fieldName);
+  }
+
+  getFieldClass(fieldName: string): string {
+    if (this.hasFieldError(fieldName)) {
+      return 'border-red-500 focus:border-red-500 focus:ring-red-500';
+    }
+    return 'border-gray-300 focus:border-blue-500 focus:ring-blue-500';
   }
 }

@@ -67,8 +67,8 @@
 
     <!-- Filtros e Busca -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="flex flex-col md:flex-row gap-4 flex-1">
                 <!-- Busca -->
                 <div class="relative">
                     <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -84,20 +84,70 @@
                     <option value="receita">Receitas</option>
                     <option value="despesa">Despesas</option>
                 </select>
+
+                <!-- Filtro por Mês -->
+                <div class="relative calendario-container">
+                    <button (click)="toggleCalendario()"
+                        class="flex items-center justify-between bg-white  border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-w-[180px]">
+                        <span class="flex items-center">
+                            <i class="fas fa-calendar-alt mr-2 text-blue-500"></i>
+                            {{ textoMesSelecionado }}
+                        </span>
+                        <i class="fas fa-chevron-down text-gray-400 text-xs ml-2"
+                            [class.rotate-180]="mostrarCalendario"></i>
+                    </button>
+                    <div *ngIf="mostrarCalendario" (click)="$event.stopPropagation()"
+                        class="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 min-w-[300px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <button (click)="alterarAno(-1)"
+                                class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                                <i class="fas fa-chevron-left text-gray-600"></i>
+                            </button>
+                            <h3 class="text-lg font-semibold text-gray-900">{{ anoAtual }}</h3>
+                            <button (click)="alterarAno(1)"
+                                class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                                <i class="fas fa-chevron-right text-gray-600"></i>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button *ngFor="let mes of nomesMeses; let i = index"
+                                (click)="verificarMesComTransacoes(i, anoAtual) ? selecionarMes(i, anoAtual) : null"
+                                [disabled]="!verificarMesComTransacoes(i, anoAtual)" [class]="'px-3 py-2 text-sm rounded-lg transition-colors ' + 
+                                    (verificarMesSelecionado(i, anoAtual) ? 'bg-blue-500 text-white' : 
+                                    verificarMesComTransacoes(i, anoAtual) ? 'bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer' : 
+                                    'bg-gray-50 text-gray-400 cursor-not-allowed')">
+                                {{ mes }}
+                            </button>
+                        </div>
+                        <div class="flex justify-between mt-4 pt-3 border-t border-gray-200">
+                            <button (click)="limparFiltroMes()"
+                                class="text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                                Mês atual
+                            </button>
+                            <button (click)="fecharCalendario()"
+                                class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                                Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Toggle para mostrar inativos -->
-            <label class="flex items-center cursor-pointer">
-                <input type="checkbox" [(ngModel)]="mostrarInativos" (ngModelChange)="onFiltroChange()" class="sr-only">
-                <div class="relative">
-                    <div [ngClass]="mostrarInativos ? 'bg-blue-600' : 'bg-gray-200'"
-                        class="block w-14 h-8 rounded-full transition-colors duration-200"></div>
-                    <div [ngClass]="mostrarInativos ? 'translate-x-6' : 'translate-x-1'"
-                        class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-200">
+            <div class="flex items-center">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" [(ngModel)]="mostrarInativos" (ngModelChange)="onFiltroChange()"
+                        class="sr-only">
+                    <div class="relative">
+                        <div [ngClass]="mostrarInativos ? 'bg-blue-600' : 'bg-gray-200'"
+                            class="block w-14 h-8 rounded-full transition-colors duration-200"></div>
+                        <div [ngClass]="mostrarInativos ? 'translate-x-6' : 'translate-x-1'"
+                            class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-200">
+                        </div>
                     </div>
-                </div>
-                <span class="ml-3 text-sm font-medium text-gray-700">Mostrar inativas</span>
-            </label>
+                    <span class="ml-3 text-sm font-medium text-gray-700">Mostrar inativas</span>
+                </label>
+            </div>
         </div>
     </div>
 

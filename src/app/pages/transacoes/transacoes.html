@@ -243,28 +243,36 @@
                 <!-- Descrição -->
                 <div class="mb-4">
                     <label for="descricao" class="block text-sm font-medium text-gray-700 mb-2">
-                        Descrição
+                        Descrição *
                     </label>
                     <input type="text" id="descricao" name="descricao" [(ngModel)]="novaTransacao.descricao" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [class]="'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ' + getFieldClass('descricao')"
                         placeholder="Ex: Compra no supermercado">
+                    <div *ngIf="hasFieldError('descricao')" class="mt-1 text-sm text-red-600">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        {{ getFieldError('descricao') }}
+                    </div>
                 </div>
 
                 <!-- Valor -->
                 <div class="mb-4">
                     <label for="valor" class="block text-sm font-medium text-gray-700 mb-2">
-                        Valor (R$)
+                        Valor (R$) *
                     </label>
                     <input type="number" id="valor" name="valor" [(ngModel)]="novaTransacao.valor" required step="0.01"
                         min="0"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        [class]="'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ' + getFieldClass('valor')"
                         placeholder="0,00">
+                    <div *ngIf="hasFieldError('valor')" class="mt-1 text-sm text-red-600">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        {{ getFieldError('valor') }}
+                    </div>
                 </div>
 
                 <!-- Tipo -->
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo
+                        Tipo *
                     </label>
                     <div class="flex space-x-4">
                         <label class="flex items-center">
@@ -278,30 +286,42 @@
                             <span class="text-sm text-gray-700">Saída</span>
                         </label>
                     </div>
+                    <div *ngIf="hasFieldError('tipo')" class="mt-1 text-sm text-red-600">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        {{ getFieldError('tipo') }}
+                    </div>
                 </div>
 
                 <!-- Categoria -->
                 <div class="mb-4">
                     <label for="categoria" class="block text-sm font-medium text-gray-700 mb-2">
-                        Categoria
+                        Categoria *
                     </label>
                     <select id="categoria" name="categoria" [(ngModel)]="novaTransacao.categoria" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        [class]="'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ' + getFieldClass('categoria')">
                         <option value="">Selecione uma categoria</option>
                         <option *ngFor="let categoria of categorias" [value]="categoria">
                             {{ categoria }}
                         </option>
                     </select>
+                    <div *ngIf="hasFieldError('categoria')" class="mt-1 text-sm text-red-600">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        {{ getFieldError('categoria') }}
+                    </div>
                 </div>
 
                 <!-- Data -->
                 <div class="mb-6">
                     <label for="data" class="block text-sm font-medium text-gray-700 mb-2">
-                        Data
+                        Data *
                     </label>
                     <input type="date" id="data" name="data" [value]="formatarDataParaInput(novaTransacao.data!)"
                         (change)="atualizarDataTransacao($event)" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        [class]="'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ' + getFieldClass('data')">
+                    <div *ngIf="hasFieldError('data')" class="mt-1 text-sm text-red-600">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        {{ getFieldError('data') }}
+                    </div>
                 </div>
 
                 <!-- Botões -->
@@ -310,9 +330,11 @@
                         class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-200">
                         Cancelar
                     </button>
-                    <button type="submit" [disabled]="!transacaoForm.valid"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200">
-                        {{ modoEdicao ? 'Atualizar' : 'Salvar' }}
+                    <button type="submit" [disabled]="!transacaoForm.valid || isSubmitting"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center">
+                        <i *ngIf="isSubmitting" class="fas fa-spinner fa-spin mr-2"></i>
+                        {{ modoEdicao ? (isSubmitting ? 'Atualizando...' : 'Atualizar') : (isSubmitting ? 'Salvando...'
+                        : 'Salvar') }}
                     </button>
                 </div>
             </form>

@@ -1,0 +1,55 @@
+// Estilos para a sidebar
+.sidebar {
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+// Animação para o tooltip
+.tooltip-enter {
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.tooltip-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: all 200ms ease;
+}
+
+// Efeitos hover personalizados
+.menu-item {
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: -4px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 0 2px 2px 0;
+        transition: height 0.2s ease;
+    }
+
+    &.active::before {
+        height: 20px;
+    }
+}
+
+// Responsividade
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+
+        &.open {
+            transform: translateX(0);
+        }
+    }
+}

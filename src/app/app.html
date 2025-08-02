@@ -1,3 +1,14 @@
-<app-navbar-principal></app-navbar-principal>
-<router-outlet></router-outlet>
-<app-notification-container></app-notification-container>
+<div class="min-h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+
+    <!-- Main Content -->
+    <div class="ml-20">
+        <app-navbar-principal></app-navbar-principal>
+        <main class="p-6">
+            <router-outlet></router-outlet>
+        </main>
+    </div>
+
+    <app-notification-container></app-notification-container>
+</div>

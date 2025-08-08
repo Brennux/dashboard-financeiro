@@ -93,7 +93,8 @@
 
                                 <!-- Botões de ação -->
                                 <div class="flex justify-between mt-4 pt-3 border-t border-gray-200">
-                                    <button (click)="mesSelecionado = ''; fecharCalendario()"
+                                    <button
+                                        (click)="mesSelecionado = ''; fecharCalendario(); paginaAtual = 1; atualizarTransacoesSemDebounce()"
                                         class="text-sm text-gray-600 hover:text-gray-800 transition-colors">
                                         Limpar filtro
                                     </button>
@@ -107,7 +108,7 @@
 
                         <!-- Filtro por Categoria -->
                         <div class="relative">
-                            <select [(ngModel)]="categoriaSelecionada"
+                            <select [(ngModel)]="categoriaSelecionada" (ngModelChange)="onCategoriaChange()"
                                 class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                                 <option value="">🏷️ Todas as categorias</option>
                                 <option *ngFor="let categoria of categorias" [value]="categoria">
@@ -121,7 +122,7 @@
 
                         <!-- Filtro por Tipo -->
                         <div class="relative">
-                            <select [(ngModel)]="tipoSelecionado"
+                            <select [(ngModel)]="tipoSelecionado" (ngModelChange)="onTipoChange()"
                                 class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                                 <option value="">💰 Todos os tipos</option>
                                 <option value="entrada">💚 Entradas</option>
@@ -218,6 +219,39 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Paginação -->
+            <div class="flex items-center justify-between mt-6 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-2 text-sm text-gray-600">
+                    <span>Mostrar:</span>
+                    <select [(ngModel)]="limitePorPagina" (ngModelChange)="alterarLimite(limitePorPagina)"
+                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option [value]="5">5</option>
+                        <option [value]="10">10</option>
+                        <option [value]="20">20</option>
+                        <option [value]="50">50</option>
+                    </select>
+                    <span>por página</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button (click)="irParaPagina(paginaAtual - 1)" [disabled]="!podeIrParaAnterior"
+                        class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-chevron-left mr-1"></i>
+                        Anterior
+                    </button>
+
+                    <span class="px-3 py-1 text-sm text-gray-600">
+                        Página {{ paginaAtual }}
+                    </span>
+
+                    <button (click)="irParaPagina(paginaAtual + 1)" [disabled]="!podeIrParaProxima"
+                        class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        Próxima
+                        <i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -42,10 +42,14 @@ export class Transacoes implements OnInit, OnDestroy {
   textoBusca: string = '';
   mostrarSugestoes: boolean = false;
 
+  // Propriedades de paginação
+  paginaAtual: number = 1;
+  limitePorPagina: number = 10;
+  totalPaginas: number = 1;
+
   // Propriedades para o calendário
   mostrarCalendario: boolean = false;
   anoAtual: number = new Date().getFullYear();
-  mesAtual: number = new Date().getMonth();
   anosDisponiveis: number[] = [];
 
   constructor(
@@ -65,14 +69,27 @@ export class Transacoes implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.transacoesSub = this.transacoesService.transacoes$.subscribe(transacoes => {
-      this.transacoes = transacoes;
+      const transacoesArray = Array.isArray(transacoes) ? transacoes : [];
+
+      // Ordenar as transações por data e ID (mais recente primeiro)
+      this.transacoes = transacoesArray.sort((a, b) => {
+        const dataA = new Date(a.data).getTime();
+        const dataB = new Date(b.data).getTime();
+        if (dataA !== dataB) {
+          return dataB - dataA;
+        }
+        // Se as datas forem iguais, ordena por ID (mais recente primeiro)
+        return b.id - a.id;
+      });
+
       this.atualizarMesesDisponiveis();
     });
 
-    // Subscrever às categorias do serviço
     this.categoriasService.categorias$.subscribe(categorias => {
       this.categorias = categorias.filter(c => c.ativa).map(c => c.nome);
     });
+
+    this.atualizarTransacoesSemDebounce();
   }
 
   ngOnDestroy() {
@@ -87,30 +104,13 @@ export class Transacoes implements OnInit, OnDestroy {
     if (this.mostrarCalendario && !event.target.closest('.calendario-container')) {
       this.mostrarCalendario = false;
     }
-
-    // Fecha as sugestões se clicar fora delas
     if (this.mostrarSugestoes && !event.target.closest('.busca-container')) {
       this.mostrarSugestoes = false;
     }
   }
 
-  // Getter para transações filtradas
   get transacoesFiltradas(): Transacao[] {
-    return this.transacoes.filter(transacao => {
-      const data = new Date(transacao.data);
-      const mesAno = `${(data.getMonth() + 1).toString().padStart(2, '0')}/${data.getFullYear()}`;
-
-      const filtroMes = !this.mesSelecionado || mesAno === this.mesSelecionado;
-      const filtroCategoria = !this.categoriaSelecionada || transacao.categoria === this.categoriaSelecionada;
-      const filtroTipo = !this.tipoSelecionado ||
-        (this.tipoSelecionado === 'entrada' && transacao.valor > 0) ||
-        (this.tipoSelecionado === 'saida' && transacao.valor < 0);
-      const filtroBusca = !this.textoBusca ||
-        transacao.descricao.toLowerCase().includes(this.textoBusca.toLowerCase()) ||
-        transacao.categoria.toLowerCase().includes(this.textoBusca.toLowerCase());
-
-      return filtroMes && filtroCategoria && filtroTipo && filtroBusca;
-    });
+    return this.transacoes;
   }
 
   // Método para atualizar meses disponíveis
@@ -119,23 +119,49 @@ export class Transacoes implements OnInit, OnDestroy {
     const anosSet = new Set<number>();
 
     this.transacoes.forEach(transacao => {
-      const data = new Date(transacao.data);
-      const mesAno = `${(data.getMonth() + 1).toString().padStart(2, '0')}/${data.getFullYear()}`;
-      mesesSet.add(mesAno);
-      anosSet.add(data.getFullYear());
+      try {
+        const data = typeof transacao.data === 'string' ? new Date(transacao.data) : new Date(transacao.data);
+        if (!isNaN(data.getTime())) {
+          const mesAno = `${(data.getMonth() + 1).toString().padStart(2, '0')}/${data.getFullYear()}`;
+          mesesSet.add(mesAno);
+          anosSet.add(data.getFullYear());
+        }
+      } catch (error) {
+        console.warn('Data inválida encontrada:', transacao.data);
+      }
     });
 
     this.mesesDisponiveis = Array.from(mesesSet).sort((a, b) => {
-      // Ordena do mais recente para o mais antigo
       const [mesA, anoA] = a.split('/').map(Number);
       const [mesB, anoB] = b.split('/').map(Number);
       return anoB - anoA || mesB - mesA;
     });
-
     this.anosDisponiveis = Array.from(anosSet).sort((a, b) => b - a);
   }
 
-  // Métodos para o calendário
+  atualizarTransacoesFiltradas() {
+    this.transacoesService.carregarTransacoes({
+      mes: this.mesSelecionado,
+      categoria: this.categoriaSelecionada,
+      tipo: this.tipoSelecionado,
+      busca: this.textoBusca,
+      page: this.paginaAtual,
+      limit: this.limitePorPagina
+    });
+  }
+
+  // Método para atualizar sem debounce (para ações que precisam resposta imediata)
+  atualizarTransacoesSemDebounce() {
+    this.transacoesService.carregarTransacoesSemDebounce({
+      mes: this.mesSelecionado,
+      categoria: this.categoriaSelecionada,
+      tipo: this.tipoSelecionado,
+      busca: this.textoBusca,
+      page: this.paginaAtual,
+      limit: this.limitePorPagina
+    });
+  }
+
   toggleCalendario() {
     this.mostrarCalendario = !this.mostrarCalendario;
   }
@@ -148,6 +174,8 @@ export class Transacoes implements OnInit, OnDestroy {
     const mesFormatado = `${(mes + 1).toString().padStart(2, '0')}/${ano}`;
     this.mesSelecionado = mesFormatado;
     this.mostrarCalendario = false;
+    this.paginaAtual = 1;
+    this.atualizarTransacoesSemDebounce();
   }
 
   verificarMesComTransacoes(mes: number, ano: number): boolean {
@@ -176,7 +204,6 @@ export class Transacoes implements OnInit, OnDestroy {
     return this.formatarNomeMes(this.mesSelecionado);
   }
 
-  // Método para limpar filtros
   limparFiltros() {
     this.mesSelecionado = '';
     this.categoriaSelecionada = '';
@@ -184,9 +211,10 @@ export class Transacoes implements OnInit, OnDestroy {
     this.textoBusca = '';
     this.mostrarCalendario = false;
     this.mostrarSugestoes = false;
+    this.paginaAtual = 1;
+    this.atualizarTransacoesSemDebounce();
   }
 
-  // Método para formatar nome do mês
   formatarNomeMes(mesAno: string): string {
     const [mes, ano] = mesAno.split('/');
     const nomesMeses = [
@@ -218,27 +246,41 @@ export class Transacoes implements OnInit, OnDestroy {
       }
     });
 
-    return Array.from(termos).slice(0, 5); // Limitar a 5 sugestões
+    return Array.from(termos).slice(0, 5); 
   }
 
-  // Método para aplicar sugestão
   aplicarSugestao(sugestao: string) {
     this.textoBusca = sugestao;
     this.mostrarSugestoes = false;
   }
 
-  // Método para controlar exibição das sugestões
   onBuscaFocus() {
     this.mostrarSugestoes = true;
   }
 
   onBuscaInput() {
     this.mostrarSugestoes = this.textoBusca.length >= 2;
+    this.paginaAtual = 1;
+    // O debounce agora é tratado no serviço, então podemos chamar diretamente
+    this.atualizarTransacoesFiltradas();
+  }
+
+  // Métodos para mudança dos filtros (sem debounce - são ações diretas do usuário)
+  onCategoriaChange() {
+    this.paginaAtual = 1;
+    this.atualizarTransacoesSemDebounce();
+  }
+
+  onTipoChange() {
+    this.paginaAtual = 1;
+    this.atualizarTransacoesSemDebounce();
   }
 
   limparBusca() {
     this.textoBusca = '';
     this.mostrarSugestoes = false;
+    this.paginaAtual = 1;
+    this.atualizarTransacoesSemDebounce();
   }
 
   abrirModal() {
@@ -303,29 +345,42 @@ export class Transacoes implements OnInit, OnDestroy {
 
     this.isSubmitting = true;
 
-    try {
-      const transacaoParaServico = {
-        descricao: this.novaTransacao.descricao,
-        valor: this.novaTransacao.tipo === 'saida' ? -Math.abs(this.novaTransacao.valor) : Math.abs(this.novaTransacao.valor),
-        categoria: this.novaTransacao.categoria,
-        data: this.novaTransacao.data
-      };
+    const transacaoParaServico = {
+      descricao: this.novaTransacao.descricao,
+      valor: this.novaTransacao.tipo === 'saida' ? -Math.abs(this.novaTransacao.valor) : Math.abs(this.novaTransacao.valor),
+      categoria: this.novaTransacao.categoria,
+      tipo: this.novaTransacao.tipo,
+      data: this.novaTransacao.data
+    };
 
-      if (this.modoEdicao && this.transacaoEditando) {
-        // Editar transação existente
-        this.transacoesService.editarTransacao(this.transacaoEditando.id, transacaoParaServico);
-        this.notificationService.transacaoEditada(this.novaTransacao.descricao);
-      } else {
-        // Adicionar nova transação
-        this.transacoesService.adicionarTransacao(transacaoParaServico);
-        this.notificationService.transacaoAdicionada(this.novaTransacao.descricao, this.novaTransacao.valor);
-      }
-
-      this.fecharModal();
-    } catch (error) {
-      this.notificationService.error('Erro', 'Erro ao salvar transação. Tente novamente.');
-    } finally {
-      this.isSubmitting = false;
+    if (this.modoEdicao && this.transacaoEditando) {
+      // Editar transação existente
+      this.transacoesService.editarTransacao(this.transacaoEditando.id, transacaoParaServico).subscribe({
+        next: () => {
+          this.atualizarTransacoesSemDebounce();
+          this.notificationService.transacaoEditada(this.novaTransacao.descricao);
+          this.fecharModal();
+          this.isSubmitting = false;
+        },
+        error: () => {
+          this.notificationService.error('Erro', 'Erro ao editar transação. Tente novamente.');
+          this.isSubmitting = false;
+        }
+      });
+    } else {
+      // Adicionar nova transação
+      this.transacoesService.adicionarTransacao(transacaoParaServico).subscribe({
+        next: () => {
+          this.atualizarTransacoesSemDebounce();
+          this.notificationService.transacaoAdicionada(this.novaTransacao.descricao, this.novaTransacao.valor);
+          this.fecharModal();
+          this.isSubmitting = false;
+        },
+        error: () => {
+          this.notificationService.error('Erro', 'Erro ao adicionar transação. Tente novamente.');
+          this.isSubmitting = false;
+        }
+      });
     }
   }
 
@@ -342,14 +397,19 @@ export class Transacoes implements OnInit, OnDestroy {
 
   confirmarExclusao() {
     if (this.transacaoParaExcluir) {
-      try {
-        this.transacoesService.excluirTransacao(this.transacaoParaExcluir.id);
-        this.notificationService.transacaoExcluida(this.transacaoParaExcluir.descricao);
-      } catch (error) {
-        this.notificationService.error('Erro', 'Erro ao excluir transação. Tente novamente.');
-      }
+      this.transacoesService.excluirTransacao(this.transacaoParaExcluir.id).subscribe({
+        next: () => {
+          this.atualizarTransacoesSemDebounce();
+          this.notificationService.transacaoExcluida(this.transacaoParaExcluir!.descricao);
+          this.fecharModalConfirmacao();
+        },
+        error: () => {
+          this.notificationService.error('Erro', 'Erro ao excluir transação. Tente novamente.');
+        }
+      });
+    } else {
+      this.fecharModalConfirmacao();
     }
-    this.fecharModalConfirmacao();
   }
 
   validarFormulario(): boolean {
@@ -362,8 +422,16 @@ export class Transacoes implements OnInit, OnDestroy {
     );
   }
 
-  formatarData(data: Date): string {
-    return new Intl.DateTimeFormat('pt-BR').format(data);
+  formatarData(data: Date | string): string {
+    try {
+      const dataObj = typeof data === 'string' ? new Date(data) : data;
+      if (isNaN(dataObj.getTime())) {
+        return 'Data inválida';
+      }
+      return new Intl.DateTimeFormat('pt-BR').format(dataObj);
+    } catch (error) {
+      return 'Data inválida';
+    }
   }
 
   formatarValor(valor: number): string {
@@ -373,8 +441,12 @@ export class Transacoes implements OnInit, OnDestroy {
     }).format(valor);
   }
 
-  formatarDataParaInput(data: Date): string {
-    return data.toISOString().split('T')[0];
+  formatarDataParaInput(data: Date | string): string {
+    const dataObj = typeof data === 'string' ? new Date(data) : data;
+    if (isNaN(dataObj.getTime())) {
+      return '';
+    }
+    return dataObj.toISOString().split('T')[0];
   }
 
   atualizarDataTransacao(event: any) {
@@ -396,5 +468,26 @@ export class Transacoes implements OnInit, OnDestroy {
       return 'border-red-500 focus:border-red-500 focus:ring-red-500';
     }
     return 'border-gray-300 focus:border-blue-500 focus:ring-blue-500';
+  }
+
+  // Métodos de paginação
+  irParaPagina(pagina: number) {
+    if (pagina < 1) return;
+    this.paginaAtual = pagina;
+    this.atualizarTransacoesSemDebounce();
+  }
+
+  alterarLimite(novoLimite: number) {
+    this.limitePorPagina = novoLimite;
+    this.paginaAtual = 1;
+    this.atualizarTransacoesSemDebounce();
+  }
+
+  get podeIrParaAnterior(): boolean {
+    return this.paginaAtual > 1;
+  }
+
+  get podeIrParaProxima(): boolean {
+    return this.transacoes.length === this.limitePorPagina;
   }
 }

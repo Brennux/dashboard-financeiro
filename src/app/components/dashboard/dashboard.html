@@ -26,17 +26,22 @@
 
                 <!-- Controles de Período -->
                 <div class="flex space-x-1 mb-6">
-                    <button (click)="alterarMes(-12)"
-                        class="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium">12 Meses</button>
-                    <button (click)="alterarMes(-1)"
-                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">30
-                        Dias</button>
-                    <button
-                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">7
-                        Dias</button>
-                    <button
-                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">+
-                        Personalizado</button>
+                    <button (click)="carregarPeriodo('12-meses')"
+                        [class]="periodoSelecionado === '12-meses' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        12 Meses
+                    </button>
+                    <button (click)="carregarPeriodo('30-dias')"
+                        [class]="periodoSelecionado === '30-dias' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        30 Dias
+                    </button>
+                    <button (click)="carregarPeriodo('7-dias')"
+                        [class]="periodoSelecionado === '7-dias' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        7 Dias
+                    </button>
+                    <button (click)="abrirFiltroPersonalizado()"
+                        [class]="periodoSelecionado === 'personalizado' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        + Personalizado
+                    </button>
                 </div>
 
                 <!-- Gráfico de Barras -->
@@ -64,9 +69,9 @@
                                     <i class="fas fa-palm-tree text-xl mr-2"></i>
                                     <span class="font-semibold">Férias</span>
                                 </div>
-                                <div class="text-2xl font-bold">{{ formatarValor(receitasDoMes * 0.4) }}/{{
-                                    formatarValor(receitasDoMes * 0.75) }}</div>
-                                <div class="text-green-100 text-sm">{{ Math.round((receitasDoMes * 0.4) / (receitasDoMes
+                                <div class="text-2xl font-bold">{{ formatarValor(totalEntradas * 0.4) }}/{{
+                                    formatarValor(totalEntradas * 0.75) }}</div>
+                                <div class="text-green-100 text-sm">{{ Math.round((totalEntradas * 0.4) / (totalEntradas
                                     * 0.75) * 100) }}%</div>
                             </div>
                         </div>
@@ -85,9 +90,9 @@
                                     <i class="fas fa-piggy-bank text-xl mr-2"></i>
                                     <span class="font-semibold">Aposentadoria</span>
                                 </div>
-                                <div class="text-2xl font-bold">{{ formatarValor(economiaDoMes * 2) }}/{{
-                                    formatarValor(economiaDoMes * 15) }}</div>
-                                <div class="text-amber-100 text-sm">{{ Math.round((economiaDoMes * 2) / (economiaDoMes *
+                                <div class="text-2xl font-bold">{{ formatarValor(saldoLiquido * 2) }}/{{
+                                    formatarValor(saldoLiquido * 15) }}</div>
+                                <div class="text-amber-100 text-sm">{{ Math.round((saldoLiquido * 2) / (saldoLiquido *
                                     15) * 100) }}%</div>
                             </div>
                         </div>
@@ -180,64 +185,145 @@
 
             <!-- Connected Cards -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Cartões Conectados</h3>
-                    <p class="text-sm text-gray-500">Configurações e opções para sua conta</p>
-                </div>
+                <!-- Container dos Cards -->
+                <div class="relative overflow-hidden card-viewport">
+                    <div class="card-container" [style.transform]="getCardTransform()"
+                        (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEnd()"
+                        (mousedown)="onMouseDown($event)" (mousemove)="onMouseMove($event)" (mouseup)="onMouseUp()"
+                        (mouseleave)="onMouseUp()">
 
-                <!-- Card Principal -->
-                <div
-                    class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-6 text-white mb-4 relative overflow-hidden card-hover">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="text-teal-100 text-sm">CONTA POUPANÇA</span>
-                        <div class="flex space-x-1">
-                            <div class="w-8 h-8 bg-white/20 rounded-full"></div>
-                            <div class="w-8 h-8 bg-white/40 rounded-full"></div>
+                        <!-- Card 0 - Poupança/Saldo -->
+                        <div class="card-slide">
+                            <div
+                                class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                <div class="flex justify-between items-start mb-4">
+                                    <span class="text-teal-100 text-sm">CONTA POUPANÇA</span>
+                                    <div class="flex space-x-1">
+                                        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-piggy-bank text-sm"></i>
+                                        </div>
+                                        <div class="w-8 h-8 bg-white/40 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-chart-line text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="text-teal-100 text-sm mb-1">SALDO ATUAL</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(saldoLiquido) }}</div>
+                                </div>
+
+                                <div class="text-teal-100 text-sm">
+                                    Economia este mês
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-4">
-                        <div class="text-teal-100 text-sm mb-1">SALDO</div>
-                        <div class="text-3xl font-bold">{{ formatarValor(economiaDoMes) }}</div>
+                        <!-- Card 1 - Entradas -->
+                        <div class="card-slide">
+                            <div
+                                class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                <div class="flex justify-between items-start mb-4">
+                                    <span class="text-green-100 text-sm">RECEITAS</span>
+                                    <div class="flex space-x-1">
+                                        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-arrow-up text-sm"></i>
+                                        </div>
+                                        <div class="w-8 h-8 bg-white/40 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-plus text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="text-green-100 text-sm mb-1">ENTRADAS</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(totalEntradas) }}</div>
+                                </div>
+
+                                <div class="text-green-100 text-sm">
+                                    {{ numeroEntradas }} transação(ões) este mês
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 - Saídas -->
+                        <div class="card-slide">
+                            <div
+                                class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                <div class="flex justify-between items-start mb-4">
+                                    <span class="text-red-100 text-sm">DESPESAS</span>
+                                    <div class="flex space-x-1">
+                                        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-arrow-down text-sm"></i>
+                                        </div>
+                                        <div class="w-8 h-8 bg-white/40 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-minus text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="text-red-100 text-sm mb-1">SAÍDAS</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(totalSaidas) }}</div>
+                                </div>
+
+                                <div class="text-red-100 text-sm">
+                                    {{ numeroSaidas }} transação(ões) este mês
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 - Comparação -->
+                        <div class="card-slide">
+                            <div
+                                class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                <div class="flex justify-between items-start mb-4">
+                                    <span class="text-purple-100 text-sm">COMPARAÇÃO</span>
+                                    <div class="flex space-x-1">
+                                        <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-balance-scale text-sm"></i>
+                                        </div>
+                                        <div class="w-8 h-8 bg-white/40 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-chart-line text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="text-purple-100 text-sm mb-1">SALDO LÍQUIDO</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(saldoLiquido) }}</div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <div class="bg-white/10 rounded p-2">
+                                        <div class="text-purple-100">Entradas</div>
+                                        <div class="font-semibold">{{ formatarValor(totalEntradas) }}</div>
+                                    </div>
+                                    <div class="bg-white/10 rounded p-2">
+                                        <div class="text-purple-100">Saídas</div>
+                                        <div class="font-semibold">{{ formatarValor(totalSaidas) }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Navigation dots -->
-                <div class="flex justify-center space-x-2 mb-4">
-                    <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
-                    <div class="w-2 h-2 bg-gray-800 rounded-full"></div>
-                    <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
+                <div class="flex justify-center space-x-2 mt-4">
+                    <div *ngFor="let dot of [0,1,2,3]; let i = index" (click)="irParaCard(i)"
+                        [class]="cardAtual === i ? 'w-3 h-3 bg-gray-800 rounded-full cursor-pointer' : 'w-3 h-3 bg-gray-300 rounded-full cursor-pointer hover:bg-gray-400'"
+                        class="transition-all duration-200">
+                    </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="grid grid-cols-4 gap-4 mb-4">
-                    <div class="text-center">
-                        <div
-                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
-                            <i class="fas fa-arrow-up text-gray-600"></i>
-                        </div>
-                        <span class="text-xs text-gray-600">Recarga</span>
-                    </div>
-                    <div class="text-center">
-                        <div
-                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
-                            <i class="fas fa-paper-plane text-gray-600"></i>
-                        </div>
-                        <span class="text-xs text-gray-600">Enviar</span>
-                    </div>
-                    <div class="text-center">
-                        <div
-                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
-                            <i class="fas fa-download text-gray-600"></i>
-                        </div>
-                        <span class="text-xs text-gray-600">Sacar</span>
-                    </div>
-                    <div class="text-center">
-                        <div
-                            class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-2 transaction-icon">
-                            <i class="fas fa-qrcode text-gray-600"></i>
-                        </div>
-                        <span class="text-xs text-gray-600">PIX</span>
+                <!-- Labels dos cards -->
+                <div class="flex justify-center mt-2">
+                    <div class="text-xs text-gray-600 font-medium">
+                        <span *ngIf="cardAtual === 0">Poupança</span>
+                        <span *ngIf="cardAtual === 1">Entradas</span>
+                        <span *ngIf="cardAtual === 2">Saídas</span>
+                        <span *ngIf="cardAtual === 3">Comparação</span>
                     </div>
                 </div>
             </div>
@@ -290,6 +376,44 @@
                         Adicionar Transação
                     </a>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Filtro Personalizado -->
+    <div *ngIf="mostrarFiltroPersonalizado"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Filtro Personalizado</h3>
+                <button (click)="fecharFiltroPersonalizado()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
+                    <input type="date" [(ngModel)]="dataInicio"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Data de Fim</label>
+                    <input type="date" [(ngModel)]="dataFim"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <div class="flex space-x-3 mt-6">
+                <button (click)="fecharFiltroPersonalizado()"
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </button>
+                <button (click)="aplicarFiltroPersonalizado()"
+                    class="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                    Aplicar Filtro
+                </button>
             </div>
         </div>
     </div>

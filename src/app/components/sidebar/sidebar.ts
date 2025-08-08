@@ -38,27 +38,7 @@ export class Sidebar {
             route: '/planejamento-mensal',
             active: false
         },
-        {
-            id: 'transacoes',
-            label: 'Transações',
-            icon: 'fas fa-exchange-alt',
-            route: '/transacoes',
-            active: false
-        },
-        {
-            id: 'categorias',
-            label: 'Categorias',
-            icon: 'fas fa-tags',
-            route: '/categorias',
-            active: false
-        },
-        {
-            id: 'relatorios',
-            label: 'Relatórios',
-            icon: 'fas fa-chart-bar',
-            route: '/relatorios',
-            active: false
-        }
+       
     ];
 
     constructor(private router: Router) { }

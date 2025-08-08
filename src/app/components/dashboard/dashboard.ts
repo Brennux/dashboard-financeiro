@@ -1,8 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { TransacoesService, Transacao } from '../../service/transacoes.service';
+import { DashboardService, ResumoFinanceiro } from '../../service/dashboard.service';
 import { Subscription } from 'rxjs';
 
 interface GastoCategoria {
@@ -13,7 +15,7 @@ interface GastoCategoria {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -24,32 +26,83 @@ export class Dashboard implements OnInit, OnDestroy {
   private transacoesSub!: Subscription;
   private todasTransacoes: Transacao[] = [];
 
+  resumoFinanceiro: ResumoFinanceiro = {
+    receitas: 0,
+    despesas: 0,
+    saldo: 0,
+    comparacao: 'neutro'
+  };
+
   // Propriedades para controle de período
   mesAtual: number = new Date().getMonth();
   anoAtual: number = new Date().getFullYear();
+  periodoSelecionado: string = '30-dias'; // Período padrão
+  dadosGrafico: any = null; // Dados do gráfico vindos do backend
 
-  constructor(private transacoesService: TransacoesService) { }
+  // Propriedades para filtro personalizado
+  mostrarFiltroPersonalizado: boolean = false;
+  dataInicio: string = '';
+  dataFim: string = '';
 
-  pieChart: Chart | null = null;
+  // Propriedades para controle dos cards deslizáveis
+  cardAtual: number = 0; // 0 = Poupança/Saldo, 1 = Entradas, 2 = Saídas, 3 = Comparação
+  isDragging: boolean = false;
+  startX: number = 0;
+  currentTranslateX: number = 0;
+
+  constructor(
+    private transacoesService: TransacoesService,
+    private dashboardService: DashboardService
+  ) { }
+
   barChart: Chart | null = null;
 
   ngOnInit() {
+    // Carregar dados do gráfico do backend (período padrão)
+    this.carregarDadosGrafico(this.periodoSelecionado);
+
+    // Carregar resumo financeiro
+    this.dashboardService.obterResumoFinanceiro().subscribe({
+      next: (resumo: ResumoFinanceiro) => {
+        this.resumoFinanceiro = resumo;
+      },
+      error: (error: any) => {
+        console.error('Erro ao carregar resumo financeiro:', error);
+      }
+    });
+
+    // Carregar transações recentes
+    this.dashboardService.obterTransacoesRecentes().subscribe({
+      next: (transacoes: Transacao[]) => {
+        // Ordenar por ID decrescente (mais recente primeiro) como fallback
+        this.transacoesRecentes = transacoes.sort((a, b) => {
+          // Primeiro tenta ordenar por data (mais recente primeiro)
+          const dataA = new Date(a.data).getTime();
+          const dataB = new Date(b.data).getTime();
+          if (dataA !== dataB) {
+            return dataB - dataA; // Data mais recente primeiro
+          }
+          // Se as datas forem iguais, ordena por ID (mais recente primeiro)
+          return b.id - a.id;
+        });
+      },
+      error: (error: any) => {
+        console.error('Erro ao carregar transações recentes:', error);
+      }
+    });
+
+    // Manter lógica existente
     this.transacoesSub = this.transacoesService.transacoes$.subscribe(transacoes => {
       this.todasTransacoes = transacoes;
-      this.transacoesRecentes = transacoes.slice(0, 5);
+      // Comentar a linha abaixo pois agora usamos dados do backend
+      // this.transacoesRecentes = transacoes.slice(0, 5);
       this.processarDadosParaGrafico();
 
-      // Recrear gráficos quando dados mudarem
-      if (this.pieChart) {
-        this.pieChart.destroy();
-      }
-      if (this.barChart) {
-        this.barChart.destroy();
-      }
+      // Aguardar um momento para garantir que o DOM esteja pronto
       setTimeout(() => {
-        this.createPieChart();
-        this.createBarChart();
-      }, 100);
+        this.destroyCharts();
+        this.createCharts();
+      }, 50);
     });
   }
 
@@ -57,18 +110,68 @@ export class Dashboard implements OnInit, OnDestroy {
     if (this.transacoesSub) {
       this.transacoesSub.unsubscribe();
     }
-    if (this.pieChart) {
-      this.pieChart.destroy();
-    }
+    this.destroyCharts();
+  }
+
+  // Método para carregar dados do gráfico do backend
+  carregarDadosGrafico(periodo: string): void {
+    this.periodoSelecionado = periodo;
+    this.dashboardService.obterDadosGrafico(periodo).subscribe({
+      next: (dados: any) => {
+        this.dadosGrafico = dados;
+        // Atualizar gráfico após receber os dados
+        setTimeout(() => {
+          this.destroyCharts();
+          this.createCharts();
+        }, 50);
+      },
+      error: (error: any) => {
+        console.error('Erro ao carregar dados do gráfico:', error);
+        // Em caso de erro, usar dados locais como fallback
+        this.dadosGrafico = null;
+        setTimeout(() => {
+          this.destroyCharts();
+          this.createCharts();
+        }, 50);
+      }
+    });
+  }
+
+  // Métodos auxiliares para gerenciar gráficos
+  private destroyCharts() {
     if (this.barChart) {
       this.barChart.destroy();
+      this.barChart = null;
+    }
+  }
+
+  private createCharts() {
+    this.createBarChart();
+  }
+
+  // Função auxiliar para validar e converter datas
+  private validarData(data: any): Date | null {
+    try {
+      if (!data) return null;
+
+      const dataObj = typeof data === 'string' ? new Date(data) : data;
+
+      if (!dataObj || isNaN(dataObj.getTime())) {
+        return null;
+      }
+
+      return dataObj;
+    } catch (error) {
+      console.warn('Erro ao validar data:', error);
+      return null;
     }
   }
 
   processarDadosParaGrafico() {
     // Filtrar transações do período selecionado
     const transacoesDoMes = this.todasTransacoes.filter(t => {
-      const data = new Date(t.data);
+      const data = this.validarData(t.data);
+      if (!data) return false;
       return data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
     });
 
@@ -124,94 +227,70 @@ export class Dashboard implements OnInit, OnDestroy {
     return coresMap[categoria] || 'gray';
   }
 
-  createPieChart(): void {
-    const ctx = document.getElementById('pieChart') as HTMLCanvasElement;
-
-    if (!ctx) {
-      return;
-    }
-
-    Chart.register(...registerables);
-
-    // Se não há dados, criar gráfico vazio com mensagem
-    const hasData = this.gastosPorCategoria.length > 0;
-
-    const data = {
-      labels: hasData ? this.gastosPorCategoria.map(g => g.categoria) : ['Nenhum dado disponível'],
-      datasets: [{
-        data: hasData ? this.gastosPorCategoria.map(g => g.total) : [1],
-        backgroundColor: hasData ? this.gastosPorCategoria.map(g => this.getCategoriaColor(g.cor)) : ['#E5E7EB'],
-        borderWidth: 3,
-        borderColor: '#ffffff',
-        hoverBorderWidth: 4,
-        hoverOffset: 8
-      }]
-    };
-
-    const config: ChartConfiguration = {
-      type: 'pie' as ChartType,
-      data: data,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 20,
-              usePointStyle: true
-            }
-          },
-          tooltip: {
-            enabled: hasData,
-            callbacks: {
-              label: (context) => {
-                if (!hasData) return '';
-                const value = context.parsed;
-                const formatted = new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL'
-                }).format(value);
-                return `${context.label}: ${formatted}`;
-              }
-            }
-          }
-        }
-      }
-    };
-
-    this.pieChart = new Chart(ctx, config);
-  }
-
   createBarChart(): void {
     const ctx = document.getElementById('barChart') as HTMLCanvasElement;
 
     if (!ctx) {
+      console.warn('Canvas barChart não encontrado');
       return;
+    }
+
+    // Verificar se já existe um gráfico neste canvas
+    if (this.barChart) {
+      this.barChart.destroy();
+      this.barChart = null;
     }
 
     Chart.register(...registerables);
 
-    // Simular dados mensais para um visual similar à imagem
+    // Estrutura original mantida - dados mensais para visual similar à imagem
     const meses = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEPT', 'OCT', 'NOV', 'DEC'];
 
-    // Gerar dados simulados baseados nas transações existentes
-    const receitasSimuladas = Array.from({ length: 12 }, (_, i) => {
-      const base = this.receitasDoMes || 5000;
-      return base + (Math.random() * 3000 - 1500);
-    });
+    let receitasData, despesasData;
 
-    const despesasSimuladas = Array.from({ length: 12 }, (_, i) => {
-      const base = this.gastosDoMes || 3000;
-      return base + (Math.random() * 2000 - 1000);
-    });
+    // Usar dados REAIS do backend se disponíveis
+    if (this.dadosGrafico && this.dadosGrafico.receitas !== undefined && this.dadosGrafico.despesas !== undefined) {
+      console.log('Usando dados reais do backend:', this.dadosGrafico);
+
+      // Usar os valores EXATOS do backend
+      const receitasTotal = Math.abs(this.dadosGrafico.receitas || this.dadosGrafico.totalReceitas || 0);
+      const despesasTotal = Math.abs(this.dadosGrafico.despesas || this.dadosGrafico.totalDespesas || 0);
+
+      // Para manter o visual de 12 meses, mas com dados reais:
+      // Colocar todo o valor no mês atual e zeros nos outros
+      const mesAtualIndex = new Date().getMonth();
+
+      receitasData = Array.from({ length: 12 }, (_, i) => {
+        return i === mesAtualIndex ? receitasTotal : 0;
+      });
+
+      despesasData = Array.from({ length: 12 }, (_, i) => {
+        return i === mesAtualIndex ? despesasTotal : 0;
+      });
+    } else {
+      console.log('Dados do backend não disponíveis, usando fallback local');
+      // Fallback: usar dados locais das transações
+      receitasData = Array.from({ length: 12 }, (_, i) => {
+        if (i === this.mesAtual) {
+          return this.receitasDoMes || 0;
+        }
+        return 0;
+      });
+
+      despesasData = Array.from({ length: 12 }, (_, i) => {
+        if (i === this.mesAtual) {
+          return this.gastosDoMes || 0;
+        }
+        return 0;
+      });
+    }
 
     const data = {
       labels: meses,
       datasets: [
         {
           label: 'Receitas',
-          data: receitasSimuladas,
+          data: receitasData,
           backgroundColor: '#3B82F6',
           borderRadius: 8,
           borderSkipped: false,
@@ -219,7 +298,7 @@ export class Dashboard implements OnInit, OnDestroy {
         },
         {
           label: 'Despesas',
-          data: despesasSimuladas,
+          data: despesasData,
           backgroundColor: '#60A5FA',
           borderRadius: 8,
           borderSkipped: false,
@@ -295,8 +374,21 @@ export class Dashboard implements OnInit, OnDestroy {
     this.barChart = new Chart(ctx, config);
   }
 
-  formatarData(data: Date): string {
-    return new Intl.DateTimeFormat('pt-BR').format(data);
+  formatarData(data: Date | string): string {
+    try {
+      // Se data for string, converter para Date
+      const dataObj = typeof data === 'string' ? new Date(data) : data;
+
+      // Verificar se a data é válida
+      if (!dataObj || isNaN(dataObj.getTime())) {
+        return 'Data inválida';
+      }
+
+      return new Intl.DateTimeFormat('pt-BR').format(dataObj);
+    } catch (error) {
+      console.warn('Erro ao formatar data:', error);
+      return 'Data inválida';
+    }
   }
 
   formatarValor(valor: number): string {
@@ -322,8 +414,8 @@ export class Dashboard implements OnInit, OnDestroy {
   get receitasDoMes(): number {
     return this.todasTransacoes
       .filter(t => {
-        const data = new Date(t.data);
-        return t.valor > 0 && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
+        const data = this.validarData(t.data);
+        return data && t.valor > 0 && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
       })
       .reduce((total, transacao) => total + transacao.valor, 0);
   }
@@ -331,14 +423,15 @@ export class Dashboard implements OnInit, OnDestroy {
   get gastosDoMes(): number {
     return this.todasTransacoes
       .filter(t => {
-        const data = new Date(t.data);
-        return t.valor < 0 && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
+        const data = this.validarData(t.data);
+        return data && t.valor < 0 && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
       })
       .reduce((total, transacao) => total + Math.abs(transacao.valor), 0);
   }
 
   get economiaDoMes(): number {
-    return this.receitasDoMes - this.gastosDoMes;
+    const valorBackend = this.resumoFinanceiro?.saldo || this.resumoFinanceiro?.economia;
+    return valorBackend || (this.receitasDoMes - this.gastosDoMes) || 0;
   }
 
   // Propriedade para acessar Math no template
@@ -353,8 +446,8 @@ export class Dashboard implements OnInit, OnDestroy {
   // Getter para transações do mês atual
   get transacoesDoMes(): Transacao[] {
     return this.todasTransacoes.filter(t => {
-      const data = new Date(t.data);
-      return data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
+      const data = this.validarData(t.data);
+      return data && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
     });
   }
 
@@ -388,9 +481,23 @@ export class Dashboard implements OnInit, OnDestroy {
     return `${nomesMeses[this.mesAtual]} ${this.anoAtual}`;
   }
 
-  // Métodos para navegar entre meses
+  // Métodos para navegar entre períodos - integrado com backend
   alterarMes(direcao: number) {
-    // Para controles de período como 12 meses, ajustar logicamente
+    let periodo: string;
+
+    // Mapear os períodos para os endpoints do backend
+    if (direcao === -12) {
+      periodo = '12-meses';
+    } else if (direcao === -1) {
+      periodo = '30-dias';
+    } else {
+      periodo = '7-dias'; // padrão para outros valores
+    }
+
+    // Carregar dados do backend para o período selecionado
+    this.carregarDadosGrafico(periodo);
+
+    // Manter lógica local para compatibilidade
     if (Math.abs(direcao) > 1) {
       // Para períodos maiores, vamos voltar um ano
       this.anoAtual = direcao > 0 ? this.anoAtual + 1 : this.anoAtual - 1;
@@ -400,18 +507,68 @@ export class Dashboard implements OnInit, OnDestroy {
       this.anoAtual = novaData.getFullYear();
     }
 
-    // Atualizar gráficos quando mudar período
+    // Atualizar processamento local
     this.processarDadosParaGrafico();
-    if (this.pieChart) {
-      this.pieChart.destroy();
+  }
+
+  // Método para carregar período específico
+  carregarPeriodo(periodo: '7-dias' | '30-dias' | '12-meses') {
+    this.carregarDadosGrafico(periodo);
+  }
+
+  // Métodos para filtro personalizado
+  abrirFiltroPersonalizado() {
+    this.mostrarFiltroPersonalizado = true;
+    // Definir datas padrão (último mês)
+    const hoje = new Date();
+    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+    this.dataFim = hoje.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    this.dataInicio = primeiroDiaMes.toISOString().split('T')[0];
+  }
+
+  fecharFiltroPersonalizado() {
+    this.mostrarFiltroPersonalizado = false;
+  }
+
+  aplicarFiltroPersonalizado() {
+    if (!this.dataInicio || !this.dataFim) {
+      alert('Por favor, selecione as datas de início e fim.');
+      return;
     }
-    if (this.barChart) {
-      this.barChart.destroy();
+
+    if (new Date(this.dataInicio) > new Date(this.dataFim)) {
+      alert('A data de início deve ser anterior à data de fim.');
+      return;
     }
-    setTimeout(() => {
-      this.createPieChart();
-      this.createBarChart();
-    }, 100);
+
+    // Carregar dados com filtro personalizado
+    this.carregarDadosGraficoPersonalizado(this.dataInicio, this.dataFim);
+    this.periodoSelecionado = 'personalizado';
+    this.mostrarFiltroPersonalizado = false;
+  }
+
+  // Método para carregar dados com datas personalizadas
+  carregarDadosGraficoPersonalizado(dataInicio: string, dataFim: string): void {
+    this.dashboardService.obterDadosGraficoPersonalizado(dataInicio, dataFim).subscribe({
+      next: (dados: any) => {
+        this.dadosGrafico = dados;
+        // Atualizar gráfico após receber os dados
+        setTimeout(() => {
+          this.destroyCharts();
+          this.createCharts();
+        }, 50);
+      },
+      error: (error: any) => {
+        console.error('Erro ao carregar dados do gráfico personalizado:', error);
+        // Em caso de erro, usar dados locais como fallback
+        this.dadosGrafico = null;
+        setTimeout(() => {
+          this.destroyCharts();
+          this.createCharts();
+        }, 50);
+      }
+    });
   }
 
   irParaMesAtual() {
@@ -421,16 +578,10 @@ export class Dashboard implements OnInit, OnDestroy {
 
     // Atualizar gráficos quando mudar período
     this.processarDadosParaGrafico();
-    if (this.pieChart) {
-      this.pieChart.destroy();
-    }
-    if (this.barChart) {
-      this.barChart.destroy();
-    }
     setTimeout(() => {
-      this.createPieChart();
-      this.createBarChart();
-    }, 100);
+      this.destroyCharts();
+      this.createCharts();
+    }, 50);
   }
 
   getCategoriaColor(cor: string): string {
@@ -463,5 +614,96 @@ export class Dashboard implements OnInit, OnDestroy {
       'Outros': { icon: 'fas fa-ellipsis-h', color: 'text-cyan-600', background: 'bg-cyan-100' }
     };
     return iconesMap[categoria] || { icon: 'fas fa-circle', color: 'text-gray-600', background: 'bg-gray-100' };
+  }
+
+  // Métodos para controle dos cards deslizáveis
+  onTouchStart(event: TouchEvent) {
+    this.isDragging = true;
+    this.startX = event.touches[0].clientX;
+  }
+
+  onMouseDown(event: MouseEvent) {
+    this.isDragging = true;
+    this.startX = event.clientX;
+    event.preventDefault();
+  }
+
+  onTouchMove(event: TouchEvent) {
+    if (!this.isDragging) return;
+    const currentX = event.touches[0].clientX;
+    const deltaX = currentX - this.startX;
+    this.currentTranslateX = deltaX;
+  }
+
+  onMouseMove(event: MouseEvent) {
+    if (!this.isDragging) return;
+    const currentX = event.clientX;
+    const deltaX = currentX - this.startX;
+    this.currentTranslateX = deltaX;
+  }
+
+  onTouchEnd() {
+    this.onDragEnd();
+  }
+
+  onMouseUp() {
+    this.onDragEnd();
+  }
+
+  onDragEnd() {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+
+    const threshold = 80;
+    if (Math.abs(this.currentTranslateX) > threshold) {
+      if (this.currentTranslateX > 0) {
+        this.cardAtual = Math.max(0, this.cardAtual - 1);
+      } else {
+        this.cardAtual = Math.min(3, this.cardAtual + 1);
+      }
+    }
+    this.currentTranslateX = 0;
+  }
+
+  // Navegação dos cards
+  irParaCard(index: number) {
+    this.cardAtual = index;
+  }
+
+  // Método para calcular a transformação do card
+  getCardTransform(): string {
+    const baseTransform = -this.cardAtual * 25; // 25% por card, não 100%
+    const dragOffset = this.isDragging ? (this.currentTranslateX / 3) : 0;
+    const result = `translateX(${baseTransform + dragOffset}%)`;
+    return result;
+  }
+
+  // Getters para dados dos cards - prioriza dados do backend
+  get totalEntradas(): number {
+    const valorBackend = this.resumoFinanceiro?.receitas || this.resumoFinanceiro?.totalReceitas;
+    return valorBackend || this.receitasDoMes || 0;
+  }
+
+  get totalSaidas(): number {
+    // Backend retorna despesas como valor negativo, precisamos usar o valor absoluto
+    const valorBackend = Math.abs(this.resumoFinanceiro?.despesas || this.resumoFinanceiro?.totalDespesas || 0);
+    return valorBackend || this.gastosDoMes || 0;
+  }
+
+  get saldoLiquido(): number {
+    const valorBackend = this.resumoFinanceiro?.saldo || this.resumoFinanceiro?.saldoLiquido;
+    return valorBackend || this.economiaDoMes || 0;
+  }
+
+  get numeroEntradas(): number {
+    // Como o backend não retorna o número de transações, vamos usar os dados locais
+    const valorBackend = this.resumoFinanceiro?.numeroReceitas;
+    return valorBackend || this.transacoesReceitasDoMes || 0;
+  }
+
+  get numeroSaidas(): number {
+    // Como o backend não retorna o número de transações, vamos usar os dados locais
+    const valorBackend = this.resumoFinanceiro?.numeroDespesas;
+    return valorBackend || this.transacoesDespesasDoMes || 0;
   }
 }

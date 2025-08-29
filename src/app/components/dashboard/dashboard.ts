@@ -3,15 +3,11 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
-import { TransacoesService, Transacao } from '../../service/transacoes.service';
-import { DashboardService, ResumoFinanceiro } from '../../service/dashboard.service';
+import { TransacoesService, } from '../../service/transacoes.service';
+import { DashboardService,  } from '../../service/dashboard.service';
 import { Subscription } from 'rxjs';
-
-interface GastoCategoria {
-  categoria: string;
-  total: number;
-  cor: string;
-}
+import { IResumoFinanceiroResponse } from '../../interfaces/resumo-financeiro-response.interface';
+import { ITransacaoRequest } from '../../interfaces/transacao-request.interface';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,13 +16,11 @@ interface GastoCategoria {
   styleUrl: './dashboard.scss'
 })
 export class Dashboard implements OnInit, OnDestroy {
-  gastosPorCategoria: GastoCategoria[] = [];
-  receitasPorCategoria: { categoria: string; total: number; }[] = [];
-  transacoesRecentes: Transacao[] = [];
+  transacoesRecentes: ITransacaoRequest[] = [];
   private transacoesSub!: Subscription;
-  private todasTransacoes: Transacao[] = [];
+  private todasTransacoes: ITransacaoRequest[] = [];
 
-  resumoFinanceiro: ResumoFinanceiro = {
+  resumoFinanceiro: IResumoFinanceiroResponse = {
     receitas: 0,
     despesas: 0,
     saldo: 0,
@@ -34,8 +28,6 @@ export class Dashboard implements OnInit, OnDestroy {
   };
 
   // Propriedades para controle de período
-  mesAtual: number = new Date().getMonth();
-  anoAtual: number = new Date().getFullYear();
   periodoSelecionado: string = '30-dias'; // Período padrão
   dadosGrafico: any = null; // Dados do gráfico vindos do backend
 
@@ -63,7 +55,7 @@ export class Dashboard implements OnInit, OnDestroy {
 
     // Carregar resumo financeiro
     this.dashboardService.obterResumoFinanceiro().subscribe({
-      next: (resumo: ResumoFinanceiro) => {
+      next: (resumo: IResumoFinanceiroResponse) => {
         this.resumoFinanceiro = resumo;
       },
       error: (error: any) => {
@@ -73,7 +65,7 @@ export class Dashboard implements OnInit, OnDestroy {
 
     // Carregar transações recentes
     this.dashboardService.obterTransacoesRecentes().subscribe({
-      next: (transacoes: Transacao[]) => {
+      next: (transacoes: ITransacaoRequest[]) => {
         // Ordenar por ID decrescente (mais recente primeiro) como fallback
         this.transacoesRecentes = transacoes.sort((a, b) => {
           // Primeiro tenta ordenar por data (mais recente primeiro)
@@ -96,7 +88,6 @@ export class Dashboard implements OnInit, OnDestroy {
       this.todasTransacoes = transacoes;
       // Comentar a linha abaixo pois agora usamos dados do backend
       // this.transacoesRecentes = transacoes.slice(0, 5);
-      this.processarDadosParaGrafico();
 
       // Aguardar um momento para garantir que o DOM esteja pronto
       setTimeout(() => {
@@ -167,66 +158,6 @@ export class Dashboard implements OnInit, OnDestroy {
     }
   }
 
-  processarDadosParaGrafico() {
-    // Filtrar transações do período selecionado
-    const transacoesDoMes = this.todasTransacoes.filter(t => {
-      const data = this.validarData(t.data);
-      if (!data) return false;
-      return data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
-    });
-
-    // Agrupar transações por categoria - DESPESAS (valores negativos)
-    const gastosPorCategoria = new Map<string, number>();
-
-    transacoesDoMes
-      .filter(t => t.valor < 0) // Apenas despesas
-      .forEach(transacao => {
-        const categoria = transacao.categoria;
-        const valorAtual = gastosPorCategoria.get(categoria) || 0;
-        gastosPorCategoria.set(categoria, valorAtual + Math.abs(transacao.valor));
-      });
-
-    // Agrupar transações por categoria - RECEITAS (valores positivos)
-    const receitasPorCategoria = new Map<string, number>();
-
-    transacoesDoMes
-      .filter(t => t.valor > 0) // Apenas receitas
-      .forEach(transacao => {
-        const categoria = transacao.categoria;
-        const valorAtual = receitasPorCategoria.get(categoria) || 0;
-        receitasPorCategoria.set(categoria, valorAtual + transacao.valor);
-      });
-
-    // Converter para o formato esperado pelo gráfico - DESPESAS
-    this.gastosPorCategoria = Array.from(gastosPorCategoria.entries()).map(([categoria, total]) => ({
-      categoria,
-      total,
-      cor: this.getCoresPorCategoria(categoria)
-    }));
-
-    // Converter para o formato esperado pelo gráfico - RECEITAS
-    this.receitasPorCategoria = Array.from(receitasPorCategoria.entries()).map(([categoria, total]) => ({
-      categoria,
-      total
-    }));
-  }
-
-  getCoresPorCategoria(categoria: string): string {
-    const coresMap: { [key: string]: string } = {
-      'Alimentação': 'red',
-      'Transporte': 'blue',
-      'Entretenimento': 'purple',
-      'Renda': 'green',
-      'Saúde': 'pink',
-      'Educação': 'indigo',
-      'Lazer': 'orange',
-      'Compras': 'yellow',
-      'Contas': 'gray',
-      'Outros': 'cyan'
-    };
-    return coresMap[categoria] || 'gray';
-  }
-
   createBarChart(): void {
     const ctx = document.getElementById('barChart') as HTMLCanvasElement;
 
@@ -270,18 +201,16 @@ export class Dashboard implements OnInit, OnDestroy {
     } else {
       console.log('Dados do backend não disponíveis, usando fallback local');
       // Fallback: usar dados locais das transações
+      const mesAtualIndex = new Date().getMonth();
+      const receitasTotal = this.totalEntradas;
+      const despesasTotal = this.totalSaidas;
+
       receitasData = Array.from({ length: 12 }, (_, i) => {
-        if (i === this.mesAtual) {
-          return this.receitasDoMes || 0;
-        }
-        return 0;
+        return i === mesAtualIndex ? receitasTotal : 0;
       });
 
       despesasData = Array.from({ length: 12 }, (_, i) => {
-        if (i === this.mesAtual) {
-          return this.gastosDoMes || 0;
-        }
-        return 0;
+        return i === mesAtualIndex ? despesasTotal : 0;
       });
     }
 
@@ -398,117 +327,35 @@ export class Dashboard implements OnInit, OnDestroy {
     }).format(valor);
   }
 
-  get totalGastos(): number {
-    return this.gastosPorCategoria.reduce((total, categoria) => total + categoria.total, 0);
-  }
-
-  get totalReceitas(): number {
-    return this.receitasPorCategoria.reduce((total, categoria) => total + categoria.total, 0);
-  }
-
-  get economia(): number {
-    return this.totalReceitas - this.totalGastos;
-  }
-
-  // Getters para valores do mês atual
-  get receitasDoMes(): number {
+  // Getters para dados dos cards - usar apenas dados filtrados por período
+  get totalEntradas(): number {
     return this.todasTransacoes
       .filter(t => {
         const data = this.validarData(t.data);
-        return data && t.valor > 0 && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
+        return data && t.valor > 0;
       })
       .reduce((total, transacao) => total + transacao.valor, 0);
   }
 
-  get gastosDoMes(): number {
+  get totalSaidas(): number {
     return this.todasTransacoes
       .filter(t => {
         const data = this.validarData(t.data);
-        return data && t.valor < 0 && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
+        return data && t.valor < 0;
       })
       .reduce((total, transacao) => total + Math.abs(transacao.valor), 0);
   }
 
-  get economiaDoMes(): number {
-    const valorBackend = this.resumoFinanceiro?.saldo || this.resumoFinanceiro?.economia;
-    return valorBackend || (this.receitasDoMes - this.gastosDoMes) || 0;
+  get saldoLiquido(): number {
+    return this.totalEntradas - this.totalSaidas;
   }
 
-  // Propriedade para acessar Math no template
-  Math = Math;
-
-  // Getter para taxa de economia
-  get taxaEconomia(): number {
-    if (this.receitasDoMes === 0) return this.gastosDoMes > 0 ? -100 : 0;
-    return Math.round((this.economiaDoMes / this.receitasDoMes) * 100);
+  get numeroEntradas(): number {
+    return this.todasTransacoes.filter(t => t.valor > 0).length;
   }
 
-  // Getter para transações do mês atual
-  get transacoesDoMes(): Transacao[] {
-    return this.todasTransacoes.filter(t => {
-      const data = this.validarData(t.data);
-      return data && data.getMonth() === this.mesAtual && data.getFullYear() === this.anoAtual;
-    });
-  }
-
-  // Getter para total de transações do mês
-  get totalTransacoesDoMes(): number {
-    return this.transacoesDoMes.length;
-  }
-
-  // Getter para número de receitas do mês
-  get transacoesReceitasDoMes(): number {
-    return this.transacoesDoMes.filter(t => t.valor > 0).length;
-  }
-
-  // Getter para número de despesas do mês
-  get transacoesDespesasDoMes(): number {
-    return this.transacoesDoMes.filter(t => t.valor < 0).length;
-  }
-
-  // Getter para média por transação
-  get mediaPorTransacao(): number {
-    if (this.totalTransacoesDoMes === 0) return 0;
-    const totalMovimentado = this.receitasDoMes + this.gastosDoMes;
-    return totalMovimentado / this.totalTransacoesDoMes;
-  }
-
-  get nomeDoMesAtual(): string {
-    const nomesMeses = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    return `${nomesMeses[this.mesAtual]} ${this.anoAtual}`;
-  }
-
-  // Métodos para navegar entre períodos - integrado com backend
-  alterarMes(direcao: number) {
-    let periodo: string;
-
-    // Mapear os períodos para os endpoints do backend
-    if (direcao === -12) {
-      periodo = '12-meses';
-    } else if (direcao === -1) {
-      periodo = '30-dias';
-    } else {
-      periodo = '7-dias'; // padrão para outros valores
-    }
-
-    // Carregar dados do backend para o período selecionado
-    this.carregarDadosGrafico(periodo);
-
-    // Manter lógica local para compatibilidade
-    if (Math.abs(direcao) > 1) {
-      // Para períodos maiores, vamos voltar um ano
-      this.anoAtual = direcao > 0 ? this.anoAtual + 1 : this.anoAtual - 1;
-    } else {
-      const novaData = new Date(this.anoAtual, this.mesAtual + direcao);
-      this.mesAtual = novaData.getMonth();
-      this.anoAtual = novaData.getFullYear();
-    }
-
-    // Atualizar processamento local
-    this.processarDadosParaGrafico();
+  get numeroSaidas(): number {
+    return this.todasTransacoes.filter(t => t.valor < 0).length;
   }
 
   // Método para carregar período específico
@@ -569,35 +416,6 @@ export class Dashboard implements OnInit, OnDestroy {
         }, 50);
       }
     });
-  }
-
-  irParaMesAtual() {
-    const hoje = new Date();
-    this.mesAtual = hoje.getMonth();
-    this.anoAtual = hoje.getFullYear();
-
-    // Atualizar gráficos quando mudar período
-    this.processarDadosParaGrafico();
-    setTimeout(() => {
-      this.destroyCharts();
-      this.createCharts();
-    }, 50);
-  }
-
-  getCategoriaColor(cor: string): string {
-    const coresMap: { [key: string]: string } = {
-      'red': '#EF4444',
-      'blue': '#3B82F6',
-      'green': '#10B981',
-      'purple': '#8B5CF6',
-      'pink': '#EC4899',
-      'indigo': '#6366F1',
-      'orange': '#F59E0B',
-      'yellow': '#EAB308',
-      'cyan': '#06B6D4',
-      'gray': '#6B7280'
-    };
-    return coresMap[cor] || '#6B7280';
   }
 
   getIconeCategoria(categoria: string): { icon: string; color: string; background: string } {
@@ -676,34 +494,5 @@ export class Dashboard implements OnInit, OnDestroy {
     const dragOffset = this.isDragging ? (this.currentTranslateX / 3) : 0;
     const result = `translateX(${baseTransform + dragOffset}%)`;
     return result;
-  }
-
-  // Getters para dados dos cards - prioriza dados do backend
-  get totalEntradas(): number {
-    const valorBackend = this.resumoFinanceiro?.receitas || this.resumoFinanceiro?.totalReceitas;
-    return valorBackend || this.receitasDoMes || 0;
-  }
-
-  get totalSaidas(): number {
-    // Backend retorna despesas como valor negativo, precisamos usar o valor absoluto
-    const valorBackend = Math.abs(this.resumoFinanceiro?.despesas || this.resumoFinanceiro?.totalDespesas || 0);
-    return valorBackend || this.gastosDoMes || 0;
-  }
-
-  get saldoLiquido(): number {
-    const valorBackend = this.resumoFinanceiro?.saldo || this.resumoFinanceiro?.saldoLiquido;
-    return valorBackend || this.economiaDoMes || 0;
-  }
-
-  get numeroEntradas(): number {
-    // Como o backend não retorna o número de transações, vamos usar os dados locais
-    const valorBackend = this.resumoFinanceiro?.numeroReceitas;
-    return valorBackend || this.transacoesReceitasDoMes || 0;
-  }
-
-  get numeroSaidas(): number {
-    // Como o backend não retorna o número de transações, vamos usar os dados locais
-    const valorBackend = this.resumoFinanceiro?.numeroDespesas;
-    return valorBackend || this.transacoesDespesasDoMes || 0;
   }
 }

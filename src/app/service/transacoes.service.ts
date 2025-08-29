@@ -1,19 +1,11 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, throwError, Subject } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
-
-export interface Transacao {
-  id: number;
-  descricao: string;
-  valor: number;
-  categoria: string;
-  tipo: 'entrada' | 'saida';
-  data: Date;
-}
+import { ITransacaoRequest } from '../interfaces/transacao-request.interface';
 
 export interface RespostaPaginada {
-  data: Transacao[];
+  data: ITransacaoRequest[];
   total?: number;
   page?: number;
   limit?: number;
@@ -25,16 +17,17 @@ export interface RespostaPaginada {
 })
 export class TransacoesService {
   private apiUrl = 'http://localhost:3000/transacoes';
-  private transacoesSubject = new BehaviorSubject<Transacao[]>([]);
+  private transacoesSubject = new BehaviorSubject<ITransacaoRequest[]>([]);
   transacoes$ = this.transacoesSubject.asObservable();
 
-  // Subject para controlar as requisições de filtro com debounce
   private filtrosSubject = new Subject<{ mes?: string, categoria?: string, tipo?: string, busca?: string, page?: number, limit?: number }>();
 
-  constructor(private http: HttpClient) {
-    this.configurarFiltrosComDebounce();
-    this.carregarTransacoes();
-  }
+
+    private readonly _httpClient = inject(HttpClient);
+    constructor(){
+      this.configurarFiltrosComDebounce();
+      this.carregarTransacoes();
+    }
 
   private configurarFiltrosComDebounce() {
     this.filtrosSubject.pipe(
@@ -51,7 +44,7 @@ export class TransacoesService {
     });
   }
 
-  private buscarTransacoes(filtros: { mes?: string, categoria?: string, tipo?: string, busca?: string, page?: number, limit?: number }): Observable<Transacao[]> {
+  private buscarTransacoes(filtros: { mes?: string, categoria?: string, tipo?: string, busca?: string, page?: number, limit?: number }): Observable<ITransacaoRequest[]> {
     let params: any = {};
     if (filtros.mes) params.mes = filtros.mes;
     if (filtros.categoria) params.categoria = filtros.categoria;
@@ -60,15 +53,15 @@ export class TransacoesService {
     if (filtros.page) params.page = filtros.page;
     if (filtros.limit) params.limit = filtros.limit;
 
-    return this.http.get<any>(this.apiUrl, { params })
+    return this._httpClient.get<RespostaPaginada>(this.apiUrl, { params })
       .pipe(
         catchError(error => {
           console.error('Erro ao carregar transações:', error);
           return throwError(() => error);
         }),
-        // Transformar a resposta para sempre retornar um array
+
         map((response: any) => {
-          let transacoes: Transacao[] = [];
+          let transacoes: ITransacaoRequest[] = [];
 
           // Se a resposta é um array, retorna diretamente
           if (Array.isArray(response)) {
@@ -87,18 +80,16 @@ export class TransacoesService {
             transacoes = response.items;
           }
           else {
-            // Caso contrário, retorna array vazio
             console.warn('Resposta da API não está no formato esperado:', response);
             transacoes = [];
           }
 
-          // Ordenar as transações por data e ID (mais recente primeiro)
           return transacoes.sort((a, b) => {
             // Primeiro tenta ordenar por data (mais recente primeiro)
             const dataA = new Date(a.data).getTime();
             const dataB = new Date(b.data).getTime();
             if (dataA !== dataB) {
-              return dataB - dataA; // Data mais recente primeiro
+              return dataB - dataA; 
             }
             // Se as datas forem iguais, ordena por ID (mais recente primeiro)
             return b.id - a.id;
@@ -109,10 +100,8 @@ export class TransacoesService {
 
   carregarTransacoes(filtros?: { mes?: string, categoria?: string, tipo?: string, busca?: string, page?: number, limit?: number }) {
     if (filtros) {
-      // Usar o subject com debounce para filtros
       this.filtrosSubject.next(filtros);
     } else {
-      // Carregar todas as transações sem filtro
       this.buscarTransacoes({}).subscribe({
         next: (transacoes) => {
           this.transacoesSubject.next(transacoes);
@@ -123,8 +112,7 @@ export class TransacoesService {
       });
     }
   }
-
-  // Método para carregar sem debounce (para ações que precisam de resposta imediata)
+  
   carregarTransacoesSemDebounce(filtros: { mes?: string, categoria?: string, tipo?: string, busca?: string, page?: number, limit?: number } = {}) {
     this.buscarTransacoes(filtros).subscribe({
       next: (transacoes) => {
@@ -136,16 +124,16 @@ export class TransacoesService {
     });
   }
 
-  adicionarTransacao(transacao: Omit<Transacao, 'id'>): Observable<Transacao> {
-    return this.http.post<Transacao>(this.apiUrl, transacao)
+  adicionarTransacao(transacao: Omit<ITransacaoRequest, 'id'>): Observable<ITransacaoRequest> {
+    return this._httpClient.post<ITransacaoRequest>(this.apiUrl, transacao)
       .pipe(catchError(error => {
         console.error('Erro ao adicionar transação:', error);
         return throwError(() => error);
       }));
   }
 
-  editarTransacao(id: number, transacao: Partial<Transacao>): Observable<Transacao> {
-    return this.http.put<Transacao>(`${this.apiUrl}/${id}`, transacao)
+  editarTransacao(id: number, transacao: Partial<ITransacaoRequest>): Observable<ITransacaoRequest> {
+    return this._httpClient.put<ITransacaoRequest>(`${this.apiUrl}/${id}`, transacao)
       .pipe(catchError(error => {
         console.error('Erro ao editar transação:', error);
         return throwError(() => error);
@@ -153,7 +141,7 @@ export class TransacoesService {
   }
 
   excluirTransacao(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`)
+    return this._httpClient.delete<void>(`${this.apiUrl}/${id}`)
       .pipe(catchError(error => {
         console.error('Erro ao excluir transação:', error);
         return throwError(() => error);

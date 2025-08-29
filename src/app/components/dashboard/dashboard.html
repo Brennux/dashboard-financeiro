@@ -1,204 +1,58 @@
-<div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Contas e Transações</h1>
-        <p class="text-gray-600">Visualize e edite suas informações pessoais e ajuste as preferências da conta</p>
-    </div>
-
-    <!-- Layout Principal -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <!-- Coluna Esquerda - Gráficos -->
-        <div class="lg:col-span-2 space-y-6">
-
-            <!-- Gráfico Principal - O dinheiro que você gasta -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center justify-between mb-6">
+<div class="h-full bg-gray-50 p-3">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 h-full">
+        <div class="lg:col-span-2 space-y-2 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-900">O dinheiro que você gasta</h3>
-                        <p class="text-sm text-gray-500">Visualize os detalhes das suas despesas mensais</p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">Análise de Gastos</h3>
+                        <p class="text-xs text-gray-500">Visualize os detalhes das suas despesas e receitas</p>
                     </div>
                     <button
-                        class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
-                        Ver Relatório Completo
+                        class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-medium hover:bg-gray-800 transition-colors whitespace-nowrap">
+                        Ver Relatório
                     </button>
                 </div>
 
-                <!-- Controles de Período -->
-                <div class="flex space-x-1 mb-6">
+                <div class="flex flex-wrap gap-2 mb-4">
                     <button (click)="carregarPeriodo('12-meses')"
-                        [class]="periodoSelecionado === '12-meses' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        [class]="periodoSelecionado === '12-meses' ? 'px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-medium shadow-sm' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs hover:bg-gray-200 transition-colors'">
                         12 Meses
                     </button>
                     <button (click)="carregarPeriodo('30-dias')"
-                        [class]="periodoSelecionado === '30-dias' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        [class]="periodoSelecionado === '30-dias' ? 'px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-medium shadow-sm' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs hover:bg-gray-200 transition-colors'">
                         30 Dias
                     </button>
                     <button (click)="carregarPeriodo('7-dias')"
-                        [class]="periodoSelecionado === '7-dias' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        [class]="periodoSelecionado === '7-dias' ? 'px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-medium shadow-sm' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs hover:bg-gray-200 transition-colors'">
                         7 Dias
                     </button>
                     <button (click)="abrirFiltroPersonalizado()"
-                        [class]="periodoSelecionado === 'personalizado' ? 'px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors'">
+                        [class]="periodoSelecionado === 'personalizado' ? 'px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-medium shadow-sm' : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs hover:bg-gray-200 transition-colors'">
                         + Personalizado
                     </button>
                 </div>
-
                 <!-- Gráfico de Barras -->
-                <div class="relative h-80">
+                <div class="relative h-80 bg-gray-50 rounded-xl p-4">
                     <canvas id="barChart"></canvas>
                 </div>
             </div>
-
-            <!-- Seção Inferior - Saving Plan e Upcoming Payment -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <!-- Saving Plan -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Plano de Poupança</h3>
-                        <p class="text-sm text-gray-500">Veja informações sobre suas metas financeiras</p>
-                    </div>
-
-                    <!-- Holidays Card -->
-                    <div
-                        class="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-4 text-white mb-4 relative overflow-hidden saving-card">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-palm-tree text-xl mr-2"></i>
-                                    <span class="font-semibold">Férias</span>
-                                </div>
-                                <div class="text-2xl font-bold">{{ formatarValor(totalEntradas * 0.4) }}/{{
-                                    formatarValor(totalEntradas * 0.75) }}</div>
-                                <div class="text-green-100 text-sm">{{ Math.round((totalEntradas * 0.4) / (totalEntradas
-                                    * 0.75) * 100) }}%</div>
-                            </div>
-                        </div>
-                        <!-- Decorative palm tree -->
-                        <div class="absolute right-0 top-0 opacity-20">
-                            <i class="fas fa-palm-tree text-6xl"></i>
-                        </div>
-                    </div>
-
-                    <!-- Retirement Plan Card -->
-                    <div
-                        class="bg-gradient-to-br from-amber-400 to-amber-500 rounded-xl p-4 text-white mb-4 relative overflow-hidden saving-card">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-piggy-bank text-xl mr-2"></i>
-                                    <span class="font-semibold">Aposentadoria</span>
-                                </div>
-                                <div class="text-2xl font-bold">{{ formatarValor(saldoLiquido * 2) }}/{{
-                                    formatarValor(saldoLiquido * 15) }}</div>
-                                <div class="text-amber-100 text-sm">{{ Math.round((saldoLiquido * 2) / (saldoLiquido *
-                                    15) * 100) }}%</div>
-                            </div>
-                        </div>
-                        <!-- Decorative icon -->
-                        <div class="absolute right-0 top-0 opacity-20">
-                            <i class="fas fa-coins text-6xl"></i>
-                        </div>
-                    </div>
-
-                    <button class="w-full text-center text-gray-600 text-sm hover:text-gray-800 transition-colors">
-                        Ver Todas as Metas
-                    </button>
-                </div>
-
-                <!-- Upcoming Payment -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Próximos Pagamentos</h3>
-                        <p class="text-sm text-gray-500">Contas e assinaturas a vencer este mês</p>
-                    </div>
-
-                    <!-- Payment Icons Grid -->
-                    <div class="grid grid-cols-4 gap-4 mb-6">
-                        <div class="text-center">
-                            <div class="text-xs text-gray-500 mb-2">AGO 12</div>
-                            <div
-                                class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <i class="fab fa-google text-blue-600"></i>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xs text-gray-500 mb-2">AGO 13</div>
-                            <div
-                                class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <i class="fas fa-chart-line text-gray-600"></i>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xs text-gray-500 mb-2">AGO 14</div>
-                            <div
-                                class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <i class="fab fa-adobe text-red-600"></i>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xs text-gray-500 mb-2">AGO 15</div>
-                            <div
-                                class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <span class="text-purple-600 font-bold text-sm">M</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-4 gap-4 mb-6">
-                        <div class="text-center">
-                            <div
-                                class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <i class="fab fa-linkedin text-blue-600"></i>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <div
-                                class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <span class="text-purple-600 font-bold text-sm">W</span>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <div
-                                class="w-12 h-12 bg-black rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <i class="fab fa-netflix text-white"></i>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <div
-                                class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto transaction-icon">
-                                <i class="fas fa-plus text-gray-400"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button class="w-full text-center text-gray-600 text-sm hover:text-gray-800 transition-colors">
-                        Gerenciar todos os pagamentos
-                    </button>
-                </div>
-            </div>
         </div>
-
         <!-- Coluna Direita - Connected Cards e Transações -->
-        <div class="space-y-6">
-
-            <!-- Connected Cards -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <!-- Container dos Cards -->
+        <div class="space-y-2 h-full overflow-hidden flex flex-col">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex-shrink-0">
                 <div class="relative overflow-hidden card-viewport">
                     <div class="card-container" [style.transform]="getCardTransform()"
                         (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEnd()"
                         (mousedown)="onMouseDown($event)" (mousemove)="onMouseMove($event)" (mouseup)="onMouseUp()"
                         (mouseleave)="onMouseUp()">
 
-                        <!-- Card 0 - Poupança/Saldo -->
                         <div class="card-slide">
                             <div
-                                class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-6 text-white relative overflow-hidden card-hover">
                                 <div class="flex justify-between items-start mb-4">
-                                    <span class="text-teal-100 text-sm">CONTA POUPANÇA</span>
-                                    <div class="flex space-x-1">
+                                    <span class="text-teal-100 text-xs font-semibold tracking-wide">CONTA
+                                        POUPANÇA</span>
+                                    <div class="flex space-x-2">
                                         <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                                             <i class="fas fa-piggy-bank text-sm"></i>
                                         </div>
@@ -209,23 +63,22 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <div class="text-teal-100 text-sm mb-1">SALDO ATUAL</div>
+                                    <div class="text-teal-100 text-xs mb-1 font-medium">SALDO ATUAL</div>
                                     <div class="text-3xl font-bold">{{ formatarValor(saldoLiquido) }}</div>
                                 </div>
 
-                                <div class="text-teal-100 text-sm">
+                                <div class="text-teal-100 text-xs">
                                     Economia este mês
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Card 1 - Entradas -->
                         <div class="card-slide">
                             <div
-                                class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white relative overflow-hidden card-hover">
                                 <div class="flex justify-between items-start mb-4">
-                                    <span class="text-green-100 text-sm">RECEITAS</span>
-                                    <div class="flex space-x-1">
+                                    <span class="text-green-100 text-xs font-semibold tracking-wide">RECEITAS</span>
+                                    <div class="flex space-x-2">
                                         <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                                             <i class="fas fa-arrow-up text-sm"></i>
                                         </div>
@@ -236,23 +89,22 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <div class="text-green-100 text-sm mb-1">ENTRADAS</div>
+                                    <div class="text-green-100 text-xs mb-1 font-medium">ENTRADAS</div>
                                     <div class="text-3xl font-bold">{{ formatarValor(totalEntradas) }}</div>
                                 </div>
 
-                                <div class="text-green-100 text-sm">
+                                <div class="text-green-100 text-xs">
                                     {{ numeroEntradas }} transação(ões) este mês
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Card 2 - Saídas -->
                         <div class="card-slide">
                             <div
-                                class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white relative overflow-hidden card-hover">
                                 <div class="flex justify-between items-start mb-4">
-                                    <span class="text-red-100 text-sm">DESPESAS</span>
-                                    <div class="flex space-x-1">
+                                    <span class="text-red-100 text-xs font-semibold tracking-wide">DESPESAS</span>
+                                    <div class="flex space-x-2">
                                         <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                                             <i class="fas fa-arrow-down text-sm"></i>
                                         </div>
@@ -263,23 +115,22 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <div class="text-red-100 text-sm mb-1">SAÍDAS</div>
+                                    <div class="text-red-100 text-xs mb-1 font-medium">SAÍDAS</div>
                                     <div class="text-3xl font-bold">{{ formatarValor(totalSaidas) }}</div>
                                 </div>
 
-                                <div class="text-red-100 text-sm">
+                                <div class="text-red-100 text-xs">
                                     {{ numeroSaidas }} transação(ões) este mês
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Card 3 - Comparação -->
                         <div class="card-slide">
                             <div
-                                class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white relative overflow-hidden card-hover">
+                                class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white relative overflow-hidden card-hover">
                                 <div class="flex justify-between items-start mb-4">
-                                    <span class="text-purple-100 text-sm">COMPARAÇÃO</span>
-                                    <div class="flex space-x-1">
+                                    <span class="text-purple-100 text-xs font-semibold tracking-wide">COMPARAÇÃO</span>
+                                    <div class="flex space-x-2">
                                         <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                                             <i class="fas fa-balance-scale text-sm"></i>
                                         </div>
@@ -290,17 +141,17 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <div class="text-purple-100 text-sm mb-1">SALDO LÍQUIDO</div>
+                                    <div class="text-purple-100 text-xs mb-1 font-medium">SALDO LÍQUIDO</div>
                                     <div class="text-3xl font-bold">{{ formatarValor(saldoLiquido) }}</div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-2 text-xs">
-                                    <div class="bg-white/10 rounded p-2">
-                                        <div class="text-purple-100">Entradas</div>
+                                    <div class="bg-white/10 rounded-xl p-2">
+                                        <div class="text-purple-100 text-xs">Entradas</div>
                                         <div class="font-semibold">{{ formatarValor(totalEntradas) }}</div>
                                     </div>
-                                    <div class="bg-white/10 rounded p-2">
-                                        <div class="text-purple-100">Saídas</div>
+                                    <div class="bg-white/10 rounded-xl p-2">
+                                        <div class="text-purple-100 text-xs">Saídas</div>
                                         <div class="font-semibold">{{ formatarValor(totalSaidas) }}</div>
                                     </div>
                                 </div>
@@ -309,14 +160,12 @@
                     </div>
                 </div>
 
-                <!-- Navigation dots -->
                 <div class="flex justify-center space-x-2 mt-4">
                     <div *ngFor="let dot of [0,1,2,3]; let i = index" (click)="irParaCard(i)"
                         [class]="cardAtual === i ? 'w-3 h-3 bg-gray-800 rounded-full cursor-pointer' : 'w-3 h-3 bg-gray-300 rounded-full cursor-pointer hover:bg-gray-400'"
-                        class="transition-all duration-200">
+                        class="transition-all duration-300">
                     </div>
                 </div>
-
                 <!-- Labels dos cards -->
                 <div class="flex justify-center mt-2">
                     <div class="text-xs text-gray-600 font-medium">
@@ -327,36 +176,33 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Recent Transactions -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Transações recentes</h3>
-                    <p class="text-sm text-gray-500 mb-2">ESTE MÊS</p>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex-1 overflow-hidden flex flex-col">
+                <div class="mb-3 flex-shrink-0">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-1">Transações Recentes</h3>
+                    <p class="text-xs text-gray-500 font-medium tracking-wide">ESTE MÊS</p>
                 </div>
-
-                <!-- Lista de Transações -->
-                <div *ngIf="transacoesRecentes.length > 0" class="space-y-4 transactions-list">
-                    <div *ngFor="let transacao of transacoesRecentes" class="flex items-center justify-between">
+                <div *ngIf="transacoesRecentes.length > 0" class="space-y-4 transactions-list flex-1 overflow-y-auto">
+                    <div *ngFor="let transacao of transacoesRecentes"
+                        class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
                         <div class="flex items-center">
                             <div [ngClass]="getIconeCategoria(transacao.categoria).background"
-                                class="w-10 h-10 rounded-full flex items-center justify-center mr-3 transaction-icon">
+                                class="w-12 h-12 rounded-xl flex items-center justify-center mr-4 transaction-icon">
                                 <i
-                                    [ngClass]="getIconeCategoria(transacao.categoria).icon + ' ' + getIconeCategoria(transacao.categoria).color"></i>
+                                    [ngClass]="getIconeCategoria(transacao.categoria).icon + ' ' + getIconeCategoria(transacao.categoria).color + ' text-base'"></i>
                             </div>
                             <div>
-                                <h4 class="text-sm font-medium text-gray-900">{{ transacao.descricao }}</h4>
-                                <p class="text-xs text-gray-500">{{ formatarData(transacao.data) }}</p>
+                                <h4 class="text-base font-medium text-gray-900 mb-1">{{ transacao.descricao }}</h4>
+                                <p class="text-sm text-gray-500">{{ formatarData(transacao.data) }}</p>
                             </div>
                         </div>
                         <div class="text-right">
                             <span [ngClass]="{
                                 'text-green-600': transacao.valor > 0,
                                 'text-red-600': transacao.valor < 0
-                            }" class="text-sm font-semibold">
+                            }" class="text-base font-semibold">
                                 {{ formatarValor(transacao.valor) }}
                             </span>
-                            <div class="text-xs text-gray-500">
+                            <div class="text-sm text-gray-500 mt-1">
                                 {{ transacao.valor > 0 ? 'Recebido' : 'Enviado' }}
                             </div>
                         </div>
@@ -364,30 +210,30 @@
                 </div>
 
                 <!-- Mensagem quando não há transações -->
-                <div *ngIf="transacoesRecentes.length === 0" class="text-center py-8">
-                    <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
-                        <i class="fas fa-receipt text-2xl"></i>
+                <div *ngIf="transacoesRecentes.length === 0" class="text-center py-6">
+                    <div
+                        class="mx-auto h-12 w-12 text-gray-400 mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-receipt text-lg"></i>
                     </div>
                     <h4 class="text-sm font-medium text-gray-900 mb-2">Nenhuma transação recente</h4>
-                    <p class="text-xs text-gray-500 mb-3">Suas transações aparecerão aqui.</p>
+                    <p class="text-xs text-gray-500 mb-4">Suas transações aparecerão aqui.</p>
                     <a routerLink="/transacoes"
-                        class="inline-flex items-center px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors">
-                        <i class="fas fa-plus mr-1"></i>
+                        class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded-xl hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
                         Adicionar Transação
                     </a>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Modal de Filtro Personalizado -->
     <div *ngIf="mostrarFiltroPersonalizado"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900">Filtro Personalizado</h3>
-                <button (click)="fecharFiltroPersonalizado()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
+                <button (click)="fecharFiltroPersonalizado()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
 
@@ -395,23 +241,23 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
                     <input type="date" [(ngModel)]="dataInicio"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Data de Fim</label>
                     <input type="date" [(ngModel)]="dataFim"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm">
                 </div>
             </div>
 
             <div class="flex space-x-3 mt-6">
                 <button (click)="fecharFiltroPersonalizado()"
-                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm">
                     Cancelar
                 </button>
                 <button (click)="aplicarFiltroPersonalizado()"
-                    class="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                    class="flex-1 px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm">
                     Aplicar Filtro
                 </button>
             </div>

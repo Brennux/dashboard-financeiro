@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TransacoesService, Transacao } from '../../service/transacoes.service';
+import { TransacoesService,} from '../../service/transacoes.service';
 import { CategoriasService } from '../../service/categorias.service';
 import { ValidationService, ValidationError } from '../../service/validation.service';
 import { NotificationService } from '../../service/notification.service';
 import { Subscription } from 'rxjs';
+import { ITransacaoRequest } from '../../interfaces/transacao-request.interface';
 
 interface TransacaoForm {
   descricao: string;
@@ -24,11 +25,11 @@ interface TransacaoForm {
 export class Transacoes implements OnInit, OnDestroy {
   mostrarModal = false;
   modoEdicao = false;
-  transacaoEditando: Transacao | null = null;
+  transacaoEditando: ITransacaoRequest | null = null;
   mostrarModalConfirmacao = false;
-  transacaoParaExcluir: Transacao | null = null;
+  transacaoParaExcluir: ITransacaoRequest | null = null;
 
-  transacoes: Transacao[] = [];
+  transacoes: ITransacaoRequest[] = [];
   private transacoesSub!: Subscription;
   categorias: string[] = [];
   validationErrors: ValidationError[] = [];
@@ -109,7 +110,7 @@ export class Transacoes implements OnInit, OnDestroy {
     }
   }
 
-  get transacoesFiltradas(): Transacao[] {
+  get transacoesFiltradas(): ITransacaoRequest[] {
     return this.transacoes;
   }
 
@@ -231,7 +232,7 @@ export class Transacoes implements OnInit, OnDestroy {
     const termos = new Set<string>();
     const termoBusca = this.textoBusca.toLowerCase();
 
-    this.transacoes.forEach(transacao => {
+    this.transacoes.forEach((transacao: ITransacaoRequest) => {
       // Adicionar palavras da descrição que contenham o termo
       const palavrasDescricao = transacao.descricao.toLowerCase().split(' ');
       palavrasDescricao.forEach(palavra => {
@@ -290,7 +291,7 @@ export class Transacoes implements OnInit, OnDestroy {
     this.resetarFormulario();
   }
 
-  abrirModalEdicao(transacao: Transacao) {
+  abrirModalEdicao(transacao: ITransacaoRequest) {
     this.mostrarModal = true;
     this.modoEdicao = true;
     this.transacaoEditando = transacao;
@@ -385,7 +386,7 @@ export class Transacoes implements OnInit, OnDestroy {
   }
 
   // Métodos para exclusão
-  abrirModalConfirmacao(transacao: Transacao) {
+  abrirModalConfirmacao(transacao: ITransacaoRequest) {
     this.transacaoParaExcluir = transacao;
     this.mostrarModalConfirmacao = true;
   }

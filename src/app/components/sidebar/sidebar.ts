@@ -38,7 +38,7 @@ export class Sidebar {
             route: '/planejamento-mensal',
             active: false
         },
-       
+
     ];
 
     constructor(private router: Router) { }

@@ -8,6 +8,7 @@ import { Transacoes } from './pages/transacoes/transacoes';
 import { Categorias } from './pages/categorias/categorias';
 import { Relatorios } from './pages/relatorios/relatorios';
 
+
 export const routes: Routes = [
     { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
     { path: 'dashboard', component: Dashboard },

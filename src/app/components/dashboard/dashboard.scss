@@ -1,30 +1,47 @@
-// Estilos customizados para o dashboard
+// Estilos customizados para o dashboard com altura fixa
 .dashboard-container {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    height: 100vh;
+    overflow: hidden;
 }
 
-// Cards com hover suave
-.card-hover {
-    transition: all 0.2s ease-in-out;
+// Layout responsivo para altura fixa
+.dashboard-grid {
+    display: grid;
+    gap: 1rem;
+    height: 100%;
 
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    @media (min-width: 1024px) {
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
     }
 }
 
-// Sistema de cards deslizáveis
+// Cards com hover suave e mais profissional
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 8px -5px rgba(0, 0, 0, 0.04);
+    }
+}
+
+// Sistema de cards deslizáveis compacto
 .card-viewport {
     position: relative;
     width: 100%;
     overflow: hidden;
+    border-radius: 1rem;
+    height: 200px; // Altura fixa menor
 }
 
 .card-container {
     display: flex;
     width: 400%; // 4 cards * 100%
-    height: auto;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
 }
 
@@ -32,100 +49,58 @@
     width: 25%; // 100% / 4 cards
     flex: 0 0 25%;
     box-sizing: border-box;
-    padding-right: 1rem; // Espaçamento entre cards
+    padding-right: 1rem;
 
     &:last-child {
         padding-right: 0;
     }
 
-    // Garantir que todos os cards tenham o mesmo tamanho
+    // Cards com altura fixa menor
     .card-hover {
         width: 100%;
-        height: 200px; // Altura fixa para todos os cards
+        height: 100%;
         margin: 0;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
 
-        // Efeito de cartão de crédito
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        transition: all 0.3s ease;
+        // Efeito de cartão de crédito mais refinado
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
         &:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        // Padrão de chip de cartão
-        &::before {
-            content: '';
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 30px;
-            height: 24px;
-            background: linear-gradient(45deg, #ffd700, #ffed4e);
-            border-radius: 4px;
-            opacity: 0.3;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
         }
     }
 }
 
-// Botões personalizados
+// Botões personalizados mais modernos
 .btn-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transition: all 0.2s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
     }
 }
 
-// Animação para os cards de saving plan
-.saving-card {
-    position: relative;
-    overflow: hidden;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s;
-    }
-
-    &:hover::before {
-        left: 100%;
-    }
-}
-
-// Estilo para os ícones de transação
+// Estilo para os ícones de transação compacto
 .transaction-icon {
-    transition: all 0.2s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        transform: scale(1.1);
+        transform: scale(1.03);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
     }
 }
 
-// Grid responsivo personalizado
-.dashboard-grid {
-    display: grid;
-    gap: 1.5rem;
-
-    @media (min-width: 1024px) {
-        grid-template-columns: 2fr 1fr;
-    }
-}
-
-// Scrollbar personalizada para lista de transações
+// Scrollbar personalizada para lista de transações mais elegante e compacta
 .transactions-list {
     scrollbar-width: thin;
-    scrollbar-color: #e5e7eb #f9fafb;
+    scrollbar-color: #d1d5db #f9fafb;
+    max-height: 300px; // Altura máxima para o scroll
 
     &::-webkit-scrollbar {
         width: 6px;
@@ -137,22 +112,41 @@
     }
 
     &::-webkit-scrollbar-thumb {
-        background: #e5e7eb;
+        background: #d1d5db;
         border-radius: 3px;
 
         &:hover {
-            background: #d1d5db;
+            background: #9ca3af;
         }
     }
 }
 
-// Responsividade para mobile
+// Melhorias na responsividade para mobile
 @media (max-width: 768px) {
+    .dashboard-container {
+        padding: 0.75rem;
+    }
+
     .card-container {
         cursor: default;
     }
 
     .card-slide {
         touch-action: pan-x;
+        padding-right: 0.75rem;
     }
+
+    .card-viewport {
+        height: 180px; // Altura menor para mobile
+    }
+}
+
+// Melhorar o contraste e legibilidade
+.text-gray-900 {
+    letter-spacing: -0.015em;
+}
+
+.text-gray-600,
+.text-gray-500 {
+    line-height: 1.5;
 }

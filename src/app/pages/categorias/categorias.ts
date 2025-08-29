@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartType } from 'chart.js';
-import { TransacoesService, Transacao } from '../../service/transacoes.service';
+import { TransacoesService, } from '../../service/transacoes.service';
 import { CategoriasService, CategoriaBase } from '../../service/categorias.service';
 import { ValidationService, ValidationError } from '../../service/validation.service';
 import { NotificationService } from '../../service/notification.service';
+import { ITransacaoRequest } from '../../interfaces/transacao-request.interface';
 
 export interface Categoria {
   id: number;
@@ -35,7 +36,7 @@ export interface NovaCategoria {
 export class Categorias implements OnInit {
   categorias: Categoria[] = [];
   categoriasBase: CategoriaBase[] = [];
-  transacoes: Transacao[] = [];
+  transacoes: ITransacaoRequest[] = [];
   categoriasFiltradas: Categoria[] = [];
   mostrarModal = false;
   modoEdicao = false;

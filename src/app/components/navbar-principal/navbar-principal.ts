@@ -6,12 +6,10 @@ import { RouterModule } from '@angular/router';
   selector: 'app-navbar-principal',
   imports: [CommonModule, RouterModule],
   templateUrl: './navbar-principal.html',
-  styleUrl: './navbar-principal.scss'
 })
 export class NavbarPrincipal {
   isMenuOpen = false;
-  userName = 'João Silva';
-  userEmail = 'joao@exemplo.com';
+ 
 
   menuItems = [
     { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-chart-pie' },

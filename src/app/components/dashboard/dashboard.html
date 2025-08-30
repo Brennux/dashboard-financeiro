@@ -64,7 +64,7 @@
 
                                 <div class="mb-4">
                                     <div class="text-teal-100 text-xs mb-1 font-medium">SALDO ATUAL</div>
-                                    <div class="text-3xl font-bold">{{ formatarValor(saldoLiquido) }}</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(resumoFinanceiro.saldo) }}</div>
                                 </div>
 
                                 <div class="text-teal-100 text-xs">
@@ -90,7 +90,7 @@
 
                                 <div class="mb-4">
                                     <div class="text-green-100 text-xs mb-1 font-medium">ENTRADAS</div>
-                                    <div class="text-3xl font-bold">{{ formatarValor(totalEntradas) }}</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(resumoFinanceiro.receitas) }}</div>
                                 </div>
 
                                 <div class="text-green-100 text-xs">
@@ -116,7 +116,7 @@
 
                                 <div class="mb-4">
                                     <div class="text-red-100 text-xs mb-1 font-medium">SAÍDAS</div>
-                                    <div class="text-3xl font-bold">{{ formatarValor(totalSaidas) }}</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(resumoFinanceiro.despesas) }}</div>
                                 </div>
 
                                 <div class="text-red-100 text-xs">
@@ -142,17 +142,17 @@
 
                                 <div class="mb-4">
                                     <div class="text-purple-100 text-xs mb-1 font-medium">SALDO LÍQUIDO</div>
-                                    <div class="text-3xl font-bold">{{ formatarValor(saldoLiquido) }}</div>
+                                    <div class="text-3xl font-bold">{{ formatarValor(resumoFinanceiro.saldo) }}</div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-2 text-xs">
                                     <div class="bg-white/10 rounded-xl p-2">
                                         <div class="text-purple-100 text-xs">Entradas</div>
-                                        <div class="font-semibold">{{ formatarValor(totalEntradas) }}</div>
+                                        <div class="font-semibold">{{ formatarValor(resumoFinanceiro.receitas) }}</div>
                                     </div>
                                     <div class="bg-white/10 rounded-xl p-2">
                                         <div class="text-purple-100 text-xs">Saídas</div>
-                                        <div class="font-semibold">{{ formatarValor(totalSaidas) }}</div>
+                                        <div class="font-semibold">{{ formatarValor(resumoFinanceiro.despesas) }}</div>
                                     </div>
                                 </div>
                             </div>

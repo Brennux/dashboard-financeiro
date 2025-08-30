@@ -4,7 +4,7 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { TransacoesService, } from '../../service/transacoes.service';
-import { DashboardService,  } from '../../service/dashboard.service';
+import { DashboardService, } from '../../service/dashboard.service';
 import { Subscription } from 'rxjs';
 import { IResumoFinanceiroResponse } from '../../interfaces/resumo-financeiro-response.interface';
 import { ITransacaoRequest } from '../../interfaces/transacao-request.interface';
@@ -20,7 +20,7 @@ export class Dashboard implements OnInit, OnDestroy {
   private transacoesSub!: Subscription;
   private todasTransacoes: ITransacaoRequest[] = [];
 
-  resumoFinanceiro: IResumoFinanceiroResponse = {
+  resumoFinanceiro: IResumoFinanceiroResponse = { // dados backend para os cards de cartões
     receitas: 0,
     despesas: 0,
     saldo: 0,
@@ -56,6 +56,7 @@ export class Dashboard implements OnInit, OnDestroy {
     // Carregar resumo financeiro
     this.dashboardService.obterResumoFinanceiro().subscribe({
       next: (resumo: IResumoFinanceiroResponse) => {
+        console.log('Dados recebidos do backend:', resumo);
         this.resumoFinanceiro = resumo;
       },
       error: (error: any) => {
@@ -158,6 +159,120 @@ export class Dashboard implements OnInit, OnDestroy {
     }
   }
 
+  // Método para obter dados agrupados por mês das transações locais
+  private obterDadosPorMes(): [number[], number[]] {
+    // Inicializar arrays para 12 meses (Janeiro = 0, Dezembro = 11)
+    const receitasPorMes = Array(12).fill(0);
+    const despesasPorMes = Array(12).fill(0);
+
+    // Processar todas as transações
+    this.todasTransacoes.forEach(transacao => {
+      const data = this.validarData(transacao.data);
+      if (!data) return; // Pular transações com data inválida
+
+      const mesIndex = data.getMonth(); // 0-11 (Janeiro-Dezembro)
+
+      if (transacao.valor > 0) {
+        // Receita (valor positivo)
+        receitasPorMes[mesIndex] += transacao.valor;
+      } else {
+        // Despesa (valor negativo)
+        despesasPorMes[mesIndex] += Math.abs(transacao.valor);
+      }
+    });
+
+    return [receitasPorMes, despesasPorMes];
+  }
+
+  // Método para obter dados baseado no período selecionado
+  private obterDadosPorPeriodo(): [number[], number[]] {
+    const agora = new Date();
+
+    if (this.periodoSelecionado === '7-dias') {
+      return this.obterDadosUltimosDias(7);
+    } else if (this.periodoSelecionado === '30-dias') {
+      return this.obterDadosPorSemanas();
+    } else {
+      // 12 meses ou personalizado
+      return this.obterDadosPorMes();
+    }
+  }
+
+  // Gerar labels dos últimos N dias
+  private gerarLabelsUltimosDias(dias: number): string[] {
+    const labels: string[] = [];
+    const hoje = new Date();
+
+    for (let i = dias - 1; i >= 0; i--) {
+      const data = new Date(hoje);
+      data.setDate(hoje.getDate() - i);
+      labels.push(data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    }
+
+    return labels;
+  }
+
+  // Gerar labels das últimas 4 semanas
+  private gerarLabelsSemanas(): string[] {
+    return ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+  }
+
+  // Obter dados dos últimos N dias
+  private obterDadosUltimosDias(dias: number): [number[], number[]] {
+    const receitas: number[] = Array(dias).fill(0);
+    const despesas: number[] = Array(dias).fill(0);
+    const hoje = new Date();
+
+    this.todasTransacoes.forEach(transacao => {
+      const dataTransacao = this.validarData(transacao.data);
+      if (!dataTransacao) return;
+
+      // Calcular diferença em dias
+      const diffTime = hoje.getTime() - dataTransacao.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays >= 0 && diffDays < dias) {
+        const indice = dias - 1 - diffDays; // Inverter para mostrar cronologicamente
+
+        if (transacao.valor > 0) {
+          receitas[indice] += transacao.valor;
+        } else {
+          despesas[indice] += Math.abs(transacao.valor);
+        }
+      }
+    });
+
+    return [receitas, despesas];
+  }
+
+  // Obter dados por semanas (últimas 4 semanas)
+  private obterDadosPorSemanas(): [number[], number[]] {
+    const receitas: number[] = Array(4).fill(0);
+    const despesas: number[] = Array(4).fill(0);
+    const hoje = new Date();
+
+    this.todasTransacoes.forEach(transacao => {
+      const dataTransacao = this.validarData(transacao.data);
+      if (!dataTransacao) return;
+
+      // Calcular diferença em semanas
+      const diffTime = hoje.getTime() - dataTransacao.getTime();
+      const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+
+      if (diffWeeks >= 0 && diffWeeks < 4) {
+        const indice = 3 - diffWeeks; // Inverter para mostrar cronologicamente
+
+        if (transacao.valor > 0) {
+          receitas[indice] += transacao.valor;
+        } else {
+          despesas[indice] += Math.abs(transacao.valor);
+        }
+      }
+    });
+
+    return [receitas, despesas];
+  }
+
   createBarChart(): void {
     const ctx = document.getElementById('barChart') as HTMLCanvasElement;
 
@@ -174,48 +289,41 @@ export class Dashboard implements OnInit, OnDestroy {
 
     Chart.register(...registerables);
 
-    // Estrutura original mantida - dados mensais para visual similar à imagem
-    const meses = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEPT', 'OCT', 'NOV', 'DEC'];
+    // Adaptar estrutura baseado no período selecionado
+    let labels: string[];
+    let receitasData: number[], despesasData: number[];
 
-    let receitasData, despesasData;
+    // Definir labels baseado no período
+    if (this.periodoSelecionado === '7-dias') {
+      labels = this.gerarLabelsUltimosDias(7);
+    } else if (this.periodoSelecionado === '30-dias') {
+      labels = this.gerarLabelsSemanas();
+    } else {
+      // 12 meses ou personalizado
+      labels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEPT', 'OCT', 'NOV', 'DEC'];
+    }
 
     // Usar dados REAIS do backend se disponíveis
     if (this.dadosGrafico && this.dadosGrafico.receitas !== undefined && this.dadosGrafico.despesas !== undefined) {
       console.log('Usando dados reais do backend:', this.dadosGrafico);
 
-      // Usar os valores EXATOS do backend
-      const receitasTotal = Math.abs(this.dadosGrafico.receitas || this.dadosGrafico.totalReceitas || 0);
-      const despesasTotal = Math.abs(this.dadosGrafico.despesas || this.dadosGrafico.totalDespesas || 0);
-
-      // Para manter o visual de 12 meses, mas com dados reais:
-      // Colocar todo o valor no mês atual e zeros nos outros
-      const mesAtualIndex = new Date().getMonth();
-
-      receitasData = Array.from({ length: 12 }, (_, i) => {
-        return i === mesAtualIndex ? receitasTotal : 0;
-      });
-
-      despesasData = Array.from({ length: 12 }, (_, i) => {
-        return i === mesAtualIndex ? despesasTotal : 0;
-      });
+      // Verificar se o backend retorna dados estruturados para o período
+      if (this.dadosGrafico.dadosPorPeriodo && Array.isArray(this.dadosGrafico.dadosPorPeriodo)) {
+        // Backend retorna dados já estruturados por período
+        receitasData = this.dadosGrafico.dadosPorPeriodo.map((item: any) => Math.abs(item.receitas || 0));
+        despesasData = this.dadosGrafico.dadosPorPeriodo.map((item: any) => Math.abs(item.despesas || 0));
+      } else {
+        // Backend não retorna dados estruturados - processar localmente baseado no período
+        [receitasData, despesasData] = this.obterDadosPorPeriodo();
+      }
     } else {
-      console.log('Dados do backend não disponíveis, usando fallback local');
-      // Fallback: usar dados locais das transações
-      const mesAtualIndex = new Date().getMonth();
-      const receitasTotal = this.totalEntradas;
-      const despesasTotal = this.totalSaidas;
-
-      receitasData = Array.from({ length: 12 }, (_, i) => {
-        return i === mesAtualIndex ? receitasTotal : 0;
-      });
-
-      despesasData = Array.from({ length: 12 }, (_, i) => {
-        return i === mesAtualIndex ? despesasTotal : 0;
-      });
+      console.log('Dados do backend não disponíveis, usando transações locais');
+      // Usar transações locais para calcular dados baseado no período
+      [receitasData, despesasData] = this.obterDadosPorPeriodo();
     }
 
     const data = {
-      labels: meses,
+      labels: labels,
       datasets: [
         {
           label: 'Receitas',
